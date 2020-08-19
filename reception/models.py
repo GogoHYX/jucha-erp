@@ -81,6 +81,7 @@ class Serves(models.Model):
     end = models.DateTimeField('结束时间', default=now)
     item = models.ManyToManyField(Menu, through='ServesItems')
     maid = models.ManyToManyField(Maid, through='ServesMaids')
+    active = models.BooleanField('进行中', default=True)
 
     def __str__(self):
         return str(self.start) + '到' + str(self.end)
@@ -121,4 +122,6 @@ class ServesMaids(models.Model):
 
 
 class Bill(models.Model):
-    pass
+    serves = models.ForeignKey(Serves)
+    PAYMENT_METHOD = (('WX', '微信扫码'), ('AP', '支付宝扫码'), ('MP', '小程序付款'), ('VC', '会员卡扣款'))
+
