@@ -37,6 +37,7 @@ class Customer(models.Model):
                              unique=True, )
     GENDER_CHOICE = ((u'M', u'男'), (u'F', u'女'),)
     gender = models.CharField(max_length=2, choices=GENDER_CHOICE, null=True)
+    credit = models.PositiveIntegerField('积分', default=0)
 
     def __str__(self):
         return self.phone
@@ -45,6 +46,12 @@ class Customer(models.Model):
         ordering = ['name']
         verbose_name = "顾客"
         verbose_name_plural = verbose_name
+
+
+class Deposit(models.Model):
+    customer = models.ForeignKey(Customer, unique=True, on_delete=models.PROTECT)
+    number = models.CharField('会员卡号', unique=True)
+    deposit = models.DecimalField('余额', decimal_places=2, default=0)
 
 
 class Place(models.Model):
@@ -61,7 +68,7 @@ class Place(models.Model):
 
 
 class Menu(models.Model):
-    item = models.CharField('项目', max_length='20')
+    item = models.CharField('项目', max_length='20', unique=True)
     price = models.PositiveSmallIntegerField('单价')
     active = models.BooleanField('仍在提供')
 
@@ -95,6 +102,7 @@ class Serves(models.Model):
 class ServesItems(models.Model):
     serves = models.ForeignKey(Serves, on_delete=models.CASCADE)
     item = models.ForeignKey(Menu, on_delete=models.PROTECT)
+    price = models.PositiveSmallIntegerField('单价', default=Menu.objects.get(pk=item).price)
     quantity = models.PositiveSmallIntegerField('数量')
 
     def __str__(self):
@@ -122,6 +130,65 @@ class ServesMaids(models.Model):
 
 
 class Bill(models.Model):
-    serves = models.ForeignKey(Serves)
-    PAYMENT_METHOD = (('WX', '微信扫码'), ('AP', '支付宝扫码'), ('MP', '小程序付款'), ('VC', '会员卡扣款'))
+    total = models.DecimalField('金额', decimal_places=2)
+
+    class Meta:
+        verbose_name = "账单"
+        verbose_name_plural = verbose_name
+
+
+class Income(models.Model):
+    PAYMENT_METHOD = (('WC', '微信扫码'), ('AP', '支付宝扫码'), ('MP', '小程序付款'),
+                      ('VC', '会员卡扣款'), ('CS', '现金支付'), ('MT', '美团/大众'),)
+    method = models.CharField('支付方式', choices=PAYMENT_METHOD, max_length=2)
+    amount = models.DecimalField('金额', decimal_places=2)
+    bill = models.ForeignKey(Bill, on_delete=models.PROTECT)
+
+    class Meta:
+        verbose_name = "入账"
+        verbose_name_plural = verbose_name
+
+
+class Voucher(models.Model):
+    name = models.CharField('名称', max_length=100, unique=True)
+    amount = models.PositiveSmallIntegerField('金额')
+    note = models.CharField('使用条件', max_length=200)
+    start = models.DateTimeField('开始日期', default=now)
+    end = models.DateTimeField('截止日期')
+
+    class Meta:
+        verbose_name = "代金券"
+        verbose_name_plural = verbose_name
+
+
+class Charge(models.Model):
+    total = models.DecimalField('总额', decimal_places=2)
+    note = models.CharField('备注')
+    bill = models.ForeignKey(Bill, unique=True, on_delete=models.PROTECT)
+
+    class Meta:
+        verbose_name = "收款"
+        verbose_name_plural = verbose_name
+
+
+class ServesCharge(Charge):
+    serves = models.ForeignKey(Serves, unique=True, on_delete=models.PROTECT)
+    discount = models.DecimalField('折扣', default=10, max_length=2, decimal_places=1)
+    voucher = models.ForeignKey(Voucher, on_delete=models.PROTECT, blank=True, null=True)
+    manual = models.PositiveIntegerField('核增、核减', default=0)
+
+    class Meta:
+        verbose_name = "服务收款"
+        verbose_name_plural = verbose_name
+
+
+class DepositCharge(Charge):
+    card = models.ForeignKey(Deposit, unique=True, on_delete=models.PROTECT)
+    deposit_amount = models.DecimalField('储值金额', decimal_places=2)
+
+    class Meta:
+        verbose_name = "充值收款"
+        verbose_name_plural = verbose_name
+
+
 
