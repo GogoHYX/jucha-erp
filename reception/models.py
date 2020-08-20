@@ -43,7 +43,6 @@ class Customer(models.Model):
         return self.phone
 
     class Meta:
-        ordering = ['name']
         verbose_name = "顾客"
         verbose_name_plural = verbose_name
 
@@ -81,6 +80,25 @@ class Menu(models.Model):
         verbose_name_plural = verbose_name
 
 
+class Reserve(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
+    time = models.DateTimeField('开始时间', default=now)
+    maid_NO = models.PositiveSmallIntegerField('女仆数', default=1)
+    maid = models.ManyToManyField(Maid, blank=True)
+    place = models.ForeignKey(Place, blank=True, null=True, on_delete=models.PROTECT)
+    active = models.BooleanField('有效', default=True)
+    THROUGH_CHOICE = (('MP', '小程序'), ('WC', '微信'), ('PH', '电话'), ('MA', '女仆'))
+    advanced = models.PositiveSmallIntegerField('定金', default=0)
+    through = models.CharField('途径', choices=THROUGH_CHOICE, max_length=2)
+
+    def __str__(self):
+        pass
+
+    class Meta:
+        verbose_name = "预约"
+        verbose_name_plural = verbose_name
+
+
 class Serves(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
     place = models.ForeignKey(Place, on_delete=models.PROTECT)
@@ -94,8 +112,7 @@ class Serves(models.Model):
         return str(self.start) + '到' + str(self.end)
 
     class Meta:
-        ordering = ['name']
-        verbose_name = "场地"
+        verbose_name = "服务"
         verbose_name_plural = verbose_name
 
 
@@ -149,10 +166,20 @@ class Income(models.Model):
         verbose_name_plural = verbose_name
 
 
-class Voucher(models.Model):
+class VoucherType(models.Model):
     name = models.CharField('名称', max_length=100, unique=True)
-    amount = models.PositiveSmallIntegerField('金额')
     note = models.CharField('使用条件', max_length=200)
+    amount = models.PositiveSmallIntegerField('金额')
+
+    class Meta:
+        verbose_name = "代金劵种类"
+        verbose_name_plural = verbose_name
+
+
+class Voucher(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
+    type = models.ForeignKey(VoucherType, on_delete=models.PROTECT)
+    unused = models.BooleanField('未使用', default=True)
     start = models.DateTimeField('开始日期', default=now)
     end = models.DateTimeField('截止日期')
 
