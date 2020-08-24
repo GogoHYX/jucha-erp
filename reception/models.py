@@ -22,7 +22,8 @@ class Maid(models.Model):
     fulltime = models.BooleanField('全职')
 
     def __str__(self):
-        return self.name
+        return self.cos_name
+
 
     class Meta:
         ordering = ['name']
@@ -125,7 +126,10 @@ class Serves(models.Model):
     active = models.BooleanField('进行中', default=True)
 
     def __str__(self):
-        return str(self.start) + '到' + str(self.end)
+        maids = self.servesmaids_set.all()
+        place = self.servesplaces_set.all()[0]
+        return '开始时间：' + str(self.start) + '\n女仆： ' + \
+               ' '.join([str(m.maid) for m in maids]) + '\n场地：' + str(place.place)
 
     class Meta:
         verbose_name = "服务"
@@ -152,6 +156,7 @@ class ServesMaids(models.Model):
     maid = models.ForeignKey(Maid, on_delete=models.PROTECT)
     start = models.DateTimeField('开始时间', default=now)
     end = models.DateTimeField('结束时间', default=now)
+    active = models.BooleanField('进行中', default=True)
 
     def __str__(self):
         return str(self.serves) + ' ' + str(self.maid)
@@ -167,12 +172,14 @@ class ServesPlaces(models.Model):
     place = models.ForeignKey(Place, on_delete=models.PROTECT)
     start = models.DateTimeField('开始时间', default=now)
     end = models.DateTimeField('结束时间', default=now)
+    active = models.BooleanField('进行中', default=True)
+
 
     def __str__(self):
         return str(self.serves) + ' ' + str(self.place)
 
     class Meta:
-        ordering = ['serves']
+        ordering = ['start']
         verbose_name = "服务场所"
         verbose_name_plural = verbose_name
 
