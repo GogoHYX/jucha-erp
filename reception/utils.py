@@ -1,6 +1,7 @@
 from .models import *
 from django.utils import timezone
 
+MAID_PRICE = 90
 
 def ongoing_serves():
     ongoing = Serves.objects.filter(active=True)
@@ -106,7 +107,15 @@ def add_item(data):
     serves = Serves.objects.get(pk=sid)
 
 
-def calculate_expense():
+def calculate_expense(data):
+    serves = Serves.objects.get(pk=data['serves_id'])
+    sm = serves.servesmaids_set.all()
+    sp = serves.servesplaces_set.all()
+    si = serves.servesitems_set.all()
+
     maid_expense = 0
+    for m in sm:
+        delta = m.end - m.start
+        maid_expense += MAID_PRICE
     place_expense = 0
     item_expense = 0
