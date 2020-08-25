@@ -2,13 +2,16 @@ from django.db import models
 from django.utils.timezone import now
 from django.core.validators import RegexValidator
 
+MAID_PRICE = 90
+CASH_BACK_PERCENTAGE = 0.1
+
 
 # Create your models here.
 class Maid(models.Model):
     identity = models.CharField('身份证号', max_length=18,
-                          validators=[RegexValidator(regex='^[0-9]{17}[0-9X]$',
-                                                     message='请输入正确的身份证号，包含数字和大写X', code='nomatch')],
-                          unique=True)
+                                validators=[RegexValidator(regex='^[0-9]{17}[0-9X]$',
+                                                           message='请输入正确的身份证号，包含数字和大写X', code='nomatch')],
+                                unique=True)
     name = models.CharField('姓名', max_length=5, )
     cos_name = models.CharField('昵称', max_length=5, unique=True)
     wechat_id = models.CharField('微信号', max_length=40, unique=True)
@@ -23,7 +26,6 @@ class Maid(models.Model):
 
     def __str__(self):
         return self.cos_name
-
 
     class Meta:
         ordering = ['name']
@@ -154,6 +156,7 @@ class ServesItems(models.Model):
 class ServesMaids(models.Model):
     serves = models.ForeignKey(Serves, on_delete=models.CASCADE)
     maid = models.ForeignKey(Maid, on_delete=models.PROTECT)
+    price = models.PositiveSmallIntegerField('单价', default=MAID_PRICE)
     start = models.DateTimeField('开始时间', default=now)
     end = models.DateTimeField('结束时间', default=now)
     active = models.BooleanField('进行中', default=True)
@@ -172,8 +175,8 @@ class ServesPlaces(models.Model):
     place = models.ForeignKey(Place, on_delete=models.PROTECT)
     start = models.DateTimeField('开始时间', default=now)
     end = models.DateTimeField('结束时间', default=now)
+    price = models.PositiveSmallIntegerField('单价')
     active = models.BooleanField('进行中', default=True)
-
 
     def __str__(self):
         return str(self.serves) + ' ' + str(self.place)
@@ -184,8 +187,41 @@ class ServesPlaces(models.Model):
         verbose_name_plural = verbose_name
 
 
+class VoucherType(models.Model):
+    name = models.CharField('名称', max_length=100, unique=True)
+    note = models.CharField('使用条件', max_length=200)
+    revenue = models.DecimalField('实际收入', decimal_places=2, max_length=8)
+    amount = models.PositiveSmallIntegerField('抵扣金额')
+
+    class Meta:
+        verbose_name = "代金劵种类"
+        verbose_name_plural = verbose_name
+
+
+class Voucher(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, blank=True, null=True)
+    type = models.ForeignKey(VoucherType, on_delete=models.PROTECT)
+    used = models.BooleanField('已使用', default=False)
+    meituan = models.BooleanField('美团/大众', default=False)
+    swift_number = models.CharField('流水号', blank=True, null=True)
+
+    class Meta:
+        unique_together = ('meituan', 'swift_number')
+        verbose_name = "代金券"
+        verbose_name_plural = verbose_name
+
+
 class Bill(models.Model):
-    total = models.DecimalField('金额', max_digits=8, decimal_places=2)
+    total = models.DecimalField('金额', max_digits=8, decimal_places=2, default=0)
+    voucher = models.ForeignKey(Voucher, on_delete=models.PROTECT, blank=True, null=True)
+    deposit_payment = models.DecimalField('会员卡扣款', decimal_places=2, max_length=8, default=0)
+    customer = models.ForeignKey(Customer, on_delete=models.PROTECT, blank=True, null=True)
+
+    def valid_amount(self):
+        valid = 0
+        for i in self.income_set.filter(cash_back=True):
+            valid += i.amount
+        return valid
 
     class Meta:
         verbose_name = "账单"
@@ -194,37 +230,27 @@ class Bill(models.Model):
 
 class Income(models.Model):
     PAYMENT_METHOD = (('WC', '微信扫码'), ('AP', '支付宝扫码'), ('MP', '小程序付款'),
-                      ('VC', '会员卡扣款'), ('CS', '现金支付'), ('MT', '美团/大众'),
-                      ('RE', '预约定金'))
+                      ('VC', '会员卡扣款'), ('CS', '现金支付'), ('RE', '预约定金'))
     method = models.CharField('支付方式', choices=PAYMENT_METHOD, max_length=2)
     amount = models.DecimalField('金额', max_digits=8, decimal_places=2)
+    swift_number = models.CharField('流水号', max_length=100, blank=True, null=True)
     bill = models.ForeignKey(Bill, on_delete=models.PROTECT)
+    cash_back = models.BooleanField('可返现', default=True)
+
+    def save(self, *args, **kwargs):
+        if self.method == 'VC':
+            self.cash_back = False
+        super(Income, self).save(*args, **kwargs)
+        t = 0
+        for i in self.bill.income_set.all():
+            t += i.amount
+        self.bill.total = t
+        self.bill.save()
 
     class Meta:
         verbose_name = "入账"
         verbose_name_plural = verbose_name
-
-
-class VoucherType(models.Model):
-    name = models.CharField('名称', max_length=100, unique=True)
-    note = models.CharField('使用条件', max_length=200)
-    amount = models.PositiveSmallIntegerField('金额')
-
-    class Meta:
-        verbose_name = "代金劵种类"
-        verbose_name_plural = verbose_name
-
-
-class Voucher(models.Model):
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
-    type = models.ForeignKey(VoucherType, on_delete=models.PROTECT)
-    unused = models.BooleanField('未使用', default=True)
-    start = models.DateTimeField('开始日期', default=now)
-    end = models.DateTimeField('截止日期')
-
-    class Meta:
-        verbose_name = "代金券"
-        verbose_name_plural = verbose_name
+        unique_together = ('method', 'swift_number')
 
 
 class Charge(models.Model):
@@ -232,15 +258,22 @@ class Charge(models.Model):
     note = models.CharField('备注', max_length=200)
     bill = models.OneToOneField(Bill, on_delete=models.PROTECT)
 
+    def unpaid(self):
+        return self.total - self.bill.total
+
     class Meta:
+        abstract = True
         verbose_name = "收款"
         verbose_name_plural = verbose_name
 
 
 class ServesCharge(Charge):
     serves = models.OneToOneField(Serves, on_delete=models.PROTECT)
-    voucher = models.ForeignKey(Voucher, on_delete=models.PROTECT, blank=True, null=True)
     manual = models.IntegerField('核增、核减', default=0)
+
+    def cash_return(self):
+        valid_total = self.manual + self.bill.valid_amount()
+        return valid_total * CASH_BACK_PERCENTAGE
 
     class Meta:
         verbose_name = "服务收款"
@@ -254,6 +287,3 @@ class DepositCharge(Charge):
     class Meta:
         verbose_name = "充值收款"
         verbose_name_plural = verbose_name
-
-
-
