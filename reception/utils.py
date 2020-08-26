@@ -149,6 +149,8 @@ def calculate_expense(data):
     place_total = sum([i[3] for i in place_detail])
     item_total = sum([i[3] for i in item_detail])
 
+    total = maid_total + place_total + item_total
+
     result = {
         'maid_total': maid_total,
         'place_total': place_total,
@@ -156,6 +158,7 @@ def calculate_expense(data):
         'maid_detail': maid_detail,
         'place_detail': place_detail,
         'item_detail': item_detail,
+        'total': total,
     }
     return result
 
@@ -163,17 +166,33 @@ def calculate_expense(data):
 def generate_charge(data):
     bill = Bill()
     if data['voucher_id']:
-        bill.voucher = Voucher.objects.get(data['voucher_id'])
+        bill.voucher = Voucher.objects.get(pk=data['voucher_id'])
+        if data['meituan']:
+            bill.voucher.meituan = True
+            bill.voucher.swift_number = data['voucher_swift_number']
     if data['is_serves']:
         charge = ServesCharge(total=data['total'], note=data['note'], bill_id=bill.id,
                               serves_id=data['serves_id'], manual=data['manual'])
     else:
         charge = DepositCharge(total=data['total'], note=data['note'], bill_id=bill.id,
-                              card_id=data['card_id'], deposit_amount=data['deposit_amount'])
+                               card_id=data['card_id'], deposit_amount=data['deposit_amount'])
+    charge.save()
+    return charge
+
+
+def check_balance(data):
+    if data['is_serves']:
+        charge = ServesCharge.objects.get(pk=data['charge_id'])
+        unpaid = charge.total + charge.manual
+    else:
+        charge = DepositCharge.objects.get(pk=data['charge_id'])
+        unpaid = charge.total
+
+    return charge.bill.total == unpaid
 
 
 def pay(data):
-    total_amount = data['total_amount']
+    total = data['total']
+    bid = data['charge_id']
     if data['customer']:
         pass
-

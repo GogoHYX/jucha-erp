@@ -244,7 +244,7 @@ class Income(models.Model):
         t = 0
         for i in self.bill.income_set.all():
             t += i.amount
-        self.bill.total = t
+        self.bill.total = t + self.bill.voucher.type.amount
         self.bill.save()
 
     class Meta:
@@ -257,9 +257,7 @@ class Charge(models.Model):
     total = models.DecimalField('总额', max_digits=8, decimal_places=2)
     note = models.CharField('备注', max_length=200)
     bill = models.OneToOneField(Bill, on_delete=models.PROTECT)
-
-    def unpaid(self):
-        return self.total - self.bill.total
+    paid = models.BooleanField('已支付', default=False)
 
     class Meta:
         abstract = True
@@ -270,6 +268,7 @@ class Charge(models.Model):
 class ServesCharge(Charge):
     serves = models.OneToOneField(Serves, on_delete=models.PROTECT)
     manual = models.IntegerField('核增、核减', default=0)
+    returned = models.BooleanField('返现', default=False)
 
     def cash_return(self):
         valid_total = self.manual + self.bill.valid_amount()
