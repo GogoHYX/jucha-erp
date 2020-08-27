@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>服务详情</title>
+</head>
+<body>
+<p>女仆详情</p>
+{% if maid_detail %}
+    <table border="#000000">
+        <thead>
+            <th>女仆</th>
+            <th>开始时间</th>
+            <th>结束时间</th>
+            <th>服务时长/h</th>
+        </thead>
+        <tbody>
+        {% for d in maid_detail %}
+            <tr><td>d.name</td><td>d.start</td><td>d.end</td><td>d.hour</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <ul>
+
+    </ul>
+{% else %}
+    <p>没有正在进行的服务</p>
+{% endif %}
+
+</body>
+</html>

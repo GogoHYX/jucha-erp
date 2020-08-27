@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>状态变更</title>
+</head>
+<body>
+<form action="" method="POST">
+    {% csrf_token %}
+    {{ form }}
+    <input type="reset" value="重置">
+    <input type="submit" value="变更">
+</form>
+<button type="button">
+    <a href="{% url 'reception:serves_detail' serves_id %}">返回</a>
+</button>
+</body>
+</html>

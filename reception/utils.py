@@ -11,7 +11,7 @@ def ongoing_serves():
 
 def available_maids():
     am = Maid.objects.filter(available=True)
-    return [(m.id, m.cos_name) for m in am]
+    return am
 
 
 def available_places():
@@ -23,59 +23,36 @@ def start_serves(data):
     time = timezone.now()
     serves = Serves(start=time, end=time, active=True)
     serves.save()
-    for mid in data['maids']:
-        serves_maid = ServesMaids(serves=serves, start=time, end=time, maid_id=mid)
-        serves_maid.save()
-        maid = Maid.objects.get(pk=mid)
-        maid.available = False
-        maid.save()
+    for maid in data['maids']:
+        serves_maid = ServesMaids(serves=serves, start=time, end=time, maid=maid)
+        serves_maid.activate()
 
     pid = data['place']
-    place = Place.objects.get(pk=pid)
-    serves_place = ServesPlaces(serves=serves, place_id=pid, start=time, end=time, price=place.price)
-    serves_place.save()
-    place.available = False
-    place.save()
+    serves_place = ServesPlaces(serves=serves, place_id=pid, start=time, end=time)
+    serves_place.activate()
 
 
 def change_status(data):
     time = data['time']
     serves = Serves.objects.get(id=data['serves_id'])
-    for mid in data['out_mid']:
-        serves_maid = ServesMaids.objects.get(serves=serves, maid_id=mid, active=True)
-        serves_maid.end = time
-        serves_maid.active = False
-        serves_maid.save()
+    if data['maids_out']:
+        for sm in data['maids_out']:
+            sm.end = time
+            sm.deactivate()
 
-        maid = Maid.objects.get(pk=mid)
-        maid.available = True
-        maid.save()
+    if data['maids_in']:
+        for maid in data['maids_in']:
+            serves_maid = ServesMaids(serves=serves, maid=maid, start=time, end=time)
+            serves_maid.activate()
 
-    for mid in data['in_mid']:
-        serves_maid = ServesMaids(serves=serves, maid_id=mid, start=time, end=time)
-        serves_maid.save()
-
-        maid = Maid.objects.get(pk=mid)
-        maid.available = False
-        maid.save()
-
-    for pid in data['out_place']:
-        place = Place.objects.get(pk=pid)
-        serves_place = ServesPlaces.objects.get(place_id=pid, serves=serves, active=True)
+    if data['place']:
+        serves_place = serves.servesplaces_set.get(active=True)
         serves_place.end = time
-        serves_place.active = False
-        serves_place.save()
+        serves_place.deactivate()
 
-        place.available = True
-        place.save()
-
-    for pid in data['in_place']:
-        place = Place.objects.get(pk=pid)
-        serves_place = ServesPlaces(serves=serves, place_id=pid, start=time, end=time, price=place.price)
-        serves_place.save()
-
-        place.available = False
-        place.save()
+        pid = data['place']
+        serves_place = ServesPlaces(serves=serves, place_id=pid, start=time, end=time)
+        serves_place.activate()
 
 
 def end_serves(data):
@@ -83,24 +60,14 @@ def end_serves(data):
     serves = Serves.objects.get(data['serves_id'])
     serves.end = time
     serves.active = False
-    if data['customer']:
-        serves.customer = data['customer']
     serves.save()
     for sm in serves.servesmaids_set.filter(active=True):
         sm.end = time
-        sm.active = False
-        sm.save()
-        maid = Maid.objects.get(pk=sm.maid)
-        maid.available = True
-        maid.save()
+        sm.deactivate()
 
     sp = serves.servesplaces_set.get(active=True)
     sp.end = time
-    sp.active = False
-    sp.save()
-    place = sp.place
-    place.available = True
-    place.save()
+    sp.deactivate()
 
 
 def add_item(data):
@@ -118,36 +85,51 @@ def valid_hour(start, end):
     return half_hour / 2
 
 
-def calculate_expense(data):
-    serves = Serves.objects.get(pk=data['serves_id'])
+def expense_detail(serves_id):
+    serves = Serves.objects.get(pk=serves_id)
     sm = serves.servesmaids_set.all()
     sp = serves.servesplaces_set.all()
     si = serves.servesitems_set.all()
 
     maid_detail = []
     for m in sm:
+        d = {}
         hour = valid_hour(m.start, m.end)
         price = m.price
         total = price * hour
-        maid_detail.append((m.maid.cos_name, hour, price, total))
+        d['name'] = m.maid.cos_name
+        d['price'] = price
+        d['hour'] = hour
+        d['total'] = total
+        maid_detail.append(d)
 
     place_detail = []
     for p in sp:
+        d = {}
         hour = valid_hour(p.start, p.end)
         price = p.price
         total = price * hour
-        place_detail.append((p.place.name, hour, price, total))
+        d['name'] = p.place.name
+        d['price'] = price
+        d['hour'] = hour
+        d['total'] = total
+        place_detail.append(d)
 
     item_detail = []
     for i in si:
+        d = {}
         price = i.price
         quantity = i.quantity
         total = price * quantity
-        item_detail.append((i.item.name, quantity, price, total))
+        d['name'] = i.item.name
+        d['price'] = price
+        d['quantity'] = quantity
+        d['total'] = total
+        item_detail.append(d)
 
-    maid_total = sum([i[3] for i in maid_detail])
-    place_total = sum([i[3] for i in place_detail])
-    item_total = sum([i[3] for i in item_detail])
+    maid_total = sum([i['total'] for i in maid_detail])
+    place_total = sum([i['total'] for i in place_detail])
+    item_total = sum([i['total'] for i in item_detail])
 
     total = maid_total + place_total + item_total
 
@@ -188,11 +170,25 @@ def check_balance(data):
         charge = DepositCharge.objects.get(pk=data['charge_id'])
         unpaid = charge.total
 
-    return charge.bill.total == unpaid
+    return max(unpaid - charge.bill.total, 0)
 
 
-def pay(data):
-    total = data['total']
-    bid = data['charge_id']
-    if data['customer']:
-        pass
+def add_payment(data):
+    amount = data['amount']
+    bill = Bill.objects.get(pk=data['bill_id'])
+    method = data['method']
+    income = Income(amount=amount, bill=bill, method=method)
+    if data['swift_number']:
+        income.swift_number = data['swift_number']
+    if data['receiver']:
+        income.receiver = data['receiver']
+    income.save()
+
+
+def cash_back_and_credit(data):
+    pass
+
+
+
+
+

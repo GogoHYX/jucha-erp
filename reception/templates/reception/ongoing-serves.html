@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>进行中</title>
+</head>
+<body>
+{% if serves_list %}
+    <ul>
+    {% for serves in serves_list %}
+        <li><a href="{% url 'reception:serves_detail' serves.id %}">{{ serves }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>没有正在进行的服务</p>
+{% endif %}
+<button type="button">
+    <a href="{% url 'reception:dashboard' %}">返回主页</a>
+</button>
+</body>
+</html>

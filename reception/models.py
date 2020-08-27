@@ -1,5 +1,5 @@
 from django.db import models
-from django.utils.timezone import now
+from django.utils.timezone import now, get_current_timezone
 from django.core.validators import RegexValidator
 
 MAID_PRICE = 90
@@ -23,6 +23,7 @@ class Maid(models.Model):
     available = models.BooleanField('空闲', default=False)
     active = models.BooleanField('在职')
     fulltime = models.BooleanField('全职')
+    price = models.PositiveSmallIntegerField('价格', default=MAID_PRICE)
 
     def __str__(self):
         return self.cos_name
@@ -69,6 +70,10 @@ class Deposit(models.Model):
     number = models.CharField('会员卡号', max_length=20, unique=True)
     discount = models.DecimalField('折扣', max_digits=2, decimal_places=1)
     deposit = models.DecimalField('余额', max_digits=8, decimal_places=2)
+
+    class Meta:
+        verbose_name = '储值卡'
+        verbose_name_plural = verbose_name
 
 
 class Place(models.Model):
@@ -119,7 +124,6 @@ class Reserve(models.Model):
 
 
 class Serves(models.Model):
-    customer = models.ForeignKey(Customer, on_delete=models.PROTECT, blank=True)
     place = models.ManyToManyField(Place, through='ServesPlaces')
     start = models.DateTimeField('开始时间', default=now)
     end = models.DateTimeField('结束时间', default=now)
@@ -130,7 +134,7 @@ class Serves(models.Model):
     def __str__(self):
         maids = self.servesmaids_set.all()
         place = self.servesplaces_set.all()[0]
-        return '开始时间：' + str(self.start) + '\n女仆： ' + \
+        return '开始时间：' + show_time(self.start) + '\n女仆： ' + \
                ' '.join([str(m.maid) for m in maids]) + '\n场地：' + str(place.place)
 
     class Meta:
@@ -161,8 +165,24 @@ class ServesMaids(models.Model):
     end = models.DateTimeField('结束时间', default=now)
     active = models.BooleanField('进行中', default=True)
 
+    def activate(self):
+        self.active = True
+        self.save()
+        self.maid.available = False
+        self.maid.save()
+
+    def deactivate(self):
+        self.active = False
+        self.save()
+        self.maid.available = True
+        self.maid.save()
+
+    def save(self, *args, **kwargs):
+        self.price = self.maid.price
+        super(ServesMaids, self).save(*args, **kwargs)
+
     def __str__(self):
-        return str(self.serves) + ' ' + str(self.maid)
+        return '开始时间：' + show_time(self.start) + ' ' + str(self.maid)
 
     class Meta:
         ordering = ['serves']
@@ -178,6 +198,22 @@ class ServesPlaces(models.Model):
     price = models.PositiveSmallIntegerField('单价')
     active = models.BooleanField('进行中', default=True)
 
+    def activate(self):
+        self.active = True
+        self.save()
+        self.place.available = False
+        self.place.save()
+
+    def deactivate(self):
+        self.active = False
+        self.save()
+        self.place.available = True
+        self.place.save()
+
+    def save(self, *args, **kwargs):
+        self.price = self.place.price
+        super(ServesPlaces, self).save(*args, **kwargs)
+
     def __str__(self):
         return str(self.serves) + ' ' + str(self.place)
 
@@ -190,7 +226,7 @@ class ServesPlaces(models.Model):
 class VoucherType(models.Model):
     name = models.CharField('名称', max_length=100, unique=True)
     note = models.CharField('使用条件', max_length=200)
-    revenue = models.DecimalField('实际收入', decimal_places=2, max_length=8)
+    revenue = models.DecimalField('实际收入', decimal_places=2, max_digits=8)
     amount = models.PositiveSmallIntegerField('抵扣金额')
 
     class Meta:
@@ -203,7 +239,7 @@ class Voucher(models.Model):
     type = models.ForeignKey(VoucherType, on_delete=models.PROTECT)
     used = models.BooleanField('已使用', default=False)
     meituan = models.BooleanField('美团/大众', default=False)
-    swift_number = models.CharField('流水号', blank=True, null=True)
+    swift_number = models.CharField('流水号', max_length=100, blank=True, null=True)
 
     class Meta:
         unique_together = ('meituan', 'swift_number')
@@ -211,17 +247,20 @@ class Voucher(models.Model):
         verbose_name_plural = verbose_name
 
 
-class Bill(models.Model):
-    total = models.DecimalField('金额', max_digits=8, decimal_places=2, default=0)
-    voucher = models.ForeignKey(Voucher, on_delete=models.PROTECT, blank=True, null=True)
-    deposit_payment = models.DecimalField('会员卡扣款', decimal_places=2, max_length=8, default=0)
-    customer = models.ForeignKey(Customer, on_delete=models.PROTECT, blank=True, null=True)
+class DepositPayment(models.Model):
+    amount = models.DecimalField('会员卡扣款', decimal_places=2, max_digits=8, default=0)
+    card = models.ForeignKey(Deposit, on_delete=models.PROTECT)
 
-    def valid_amount(self):
-        valid = 0
-        for i in self.income_set.filter(cash_back=True):
-            valid += i.amount
-        return valid
+    class Meta:
+        verbose_name = '会员卡支付'
+        verbose_name_plural = verbose_name
+
+
+class Bill(models.Model):
+    total = models.DecimalField('收款金额', max_digits=8, decimal_places=2, default=0)
+    voucher = models.ForeignKey(Voucher, on_delete=models.PROTECT, blank=True, null=True)
+    deposit_payment = models.OneToOneField(DepositPayment, on_delete=models.PROTECT, blank=True, null=True)
+    customer = models.ForeignKey(Customer, on_delete=models.PROTECT, blank=True, null=True)
 
     class Meta:
         verbose_name = "账单"
@@ -230,21 +269,19 @@ class Bill(models.Model):
 
 class Income(models.Model):
     PAYMENT_METHOD = (('WC', '微信扫码'), ('AP', '支付宝扫码'), ('MP', '小程序付款'),
-                      ('VC', '会员卡扣款'), ('CS', '现金支付'), ('RE', '预约定金'))
+                      ('CS', '现金支付'), ('RE', '客服号转账'))
     method = models.CharField('支付方式', choices=PAYMENT_METHOD, max_length=2)
     amount = models.DecimalField('金额', max_digits=8, decimal_places=2)
     swift_number = models.CharField('流水号', max_length=100, blank=True, null=True)
+    receiver = models.CharField('核账人', max_length=100, blank=True, null=True)
     bill = models.ForeignKey(Bill, on_delete=models.PROTECT)
-    cash_back = models.BooleanField('可返现', default=True)
 
     def save(self, *args, **kwargs):
-        if self.method == 'VC':
-            self.cash_back = False
         super(Income, self).save(*args, **kwargs)
         t = 0
         for i in self.bill.income_set.all():
             t += i.amount
-        self.bill.total = t + self.bill.voucher.type.amount
+        self.bill.total = t
         self.bill.save()
 
     class Meta:
@@ -271,8 +308,14 @@ class ServesCharge(Charge):
     returned = models.BooleanField('返现', default=False)
 
     def cash_return(self):
-        valid_total = self.manual + self.bill.valid_amount()
-        return valid_total * CASH_BACK_PERCENTAGE
+        valid_total = self.manual + self.bill.total
+        amount = valid_total * CASH_BACK_PERCENTAGE
+        card = self.bill.customer.deposit
+        prev = card.deposit
+        card.deposit = prev + amount
+        card.save()
+        self.returned = True
+        self.save()
 
     class Meta:
         verbose_name = "服务收款"
@@ -280,9 +323,13 @@ class ServesCharge(Charge):
 
 
 class DepositCharge(Charge):
-    card = models.OneToOneField(Deposit, on_delete=models.PROTECT)
     deposit_amount = models.DecimalField('储值金额', max_digits=8, decimal_places=2)
 
     class Meta:
         verbose_name = "充值收款"
         verbose_name_plural = verbose_name
+
+
+# helper methods
+def show_time(time):
+    return time.strftime('%Y-%m-%d %H:%M')
