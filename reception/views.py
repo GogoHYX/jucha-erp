@@ -53,6 +53,7 @@ def serves_detail(request, serves_id):
     if request.method == 'POST':
         return HttpResponseRedirect(reverse('serves_detail', args=[serves_id]))
     context = expense_detail(serves_id)
+    print(context)
     template = loader.get_template('reception/serves-detail.html')
     return HttpResponse(template.render(context, request))
 
@@ -82,21 +83,8 @@ def serves_change(request, serves_id):
     return HttpResponse(template.render(context, request))
 
 
-def change_maid(request, serves_id):
-    if request.method == 'POST':
-        sc = ServesMaidChange(request.POST, instance=serves_id)
-        print(sc.is_valid())
-        data = sc.cleaned_data
-        data['time'] = timezone.now()
-        data['serves_id'] = serves_id
-        change_maid_status(data)
-        return HttpResponseRedirect(reverse('reception:dashboard'))
-    form = ServesMaidChange(serves_id=serves_id)
-    template = loader.get_template('reception/serves-change.html')
-    context = {
-        'form': form
-    }
-    return HttpResponse(template.render(context, request))
+def check_out(request, serves_id):
+    template = loader.get_template('reception/check-out.html')
 
 
 

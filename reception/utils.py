@@ -62,11 +62,9 @@ def end_serves(data):
     serves.active = False
     serves.save()
     for sm in serves.servesmaids_set.filter(active=True):
-        sm.end = time
         sm.deactivate()
 
     sp = serves.servesplaces_set.get(active=True)
-    sp.end = time
     sp.deactivate()
 
 
@@ -90,10 +88,13 @@ def expense_detail(serves_id):
     sm = serves.servesmaids_set.all()
     sp = serves.servesplaces_set.all()
     si = serves.servesitems_set.all()
+    time = timezone.now()
 
     maid_detail = []
     for m in sm:
         d = {}
+        if m.active:
+            m.update()
         hour = valid_hour(m.start, m.end)
         price = m.price
         total = price * hour
@@ -106,6 +107,8 @@ def expense_detail(serves_id):
     place_detail = []
     for p in sp:
         d = {}
+        if p.active:
+            p.update()
         hour = valid_hour(p.start, p.end)
         price = p.price
         total = price * hour

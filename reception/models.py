@@ -177,6 +177,10 @@ class ServesMaids(models.Model):
         self.maid.available = True
         self.maid.save()
 
+    def update(self):
+        self.end = now()
+        self.save()
+
     def save(self, *args, **kwargs):
         self.price = self.maid.price
         super(ServesMaids, self).save(*args, **kwargs)
@@ -209,6 +213,10 @@ class ServesPlaces(models.Model):
         self.save()
         self.place.available = True
         self.place.save()
+
+    def update(self):
+        self.end = now()
+        self.save()
 
     def save(self, *args, **kwargs):
         self.price = self.place.price
