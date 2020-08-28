@@ -7,50 +7,75 @@
 <body>
 <p>女仆详情</p>
 {% if maid_detail %}
-    <table border="#000000">
+    <table>
         <thead>
             <th>女仆</th>
-            <th>单价</th>
+            <th>开始</th>
+            <th>结束</th>
             <th>时长/h</th>
+            <th>单价</th>
             <th>总价</th>
         </thead>
         <tbody>
         {% for d in maid_detail %}
-            <tr><td>{{ d.name }}</td><td>{{ d.price }}</td><td>{{ d.hour }}</td><td>{{ d.total }}</td></tr>
+            <tr>
+                <td>{{ d.name }}</td>
+                <td>{{ d.start }}</td>
+                <td>{{ d.end }}</td>
+                <td>{{ d.hour }}</td>
+                <td>{{ d.price }}</td>
+                <td>{{ d.total }}</td>
+            </tr>
         {% endfor %}
         </tbody>
     </table>
 {% endif %}
 {% if place_detail %}
-    <table border="#000000">
+    <table>
         <thead>
             <th>场地</th>
-            <th>单价</th>
+            <th>开始</th>
+            <th>结束</th>
             <th>时长/h</th>
+            <th>单价</th>
             <th>总价</th>
         </thead>
         <tbody>
         {% for d in place_detail %}
-            <tr><td>{{ d.name }}</td><td>{{ d.price }}</td><td>{{ d.hour }}</td><td>{{ d.total }}</td></tr>
+            <tr>
+                <td>{{ d.name }}</td>
+                <td>{{ d.start }}</td>
+                <td>{{ d.end }}</td>
+                <td>{{ d.hour }}</td>
+                <td>{{ d.price }}</td>
+                <td>{{ d.total }}</td>
+            </tr>
         {% endfor %}
         </tbody>
     </table>
 {% endif %}
 {% if item_detail %}
-    <table border="#000000">
+    <table>
         <thead>
             <th>项目</th>
-            <th>单价</th>
             <th>数量</th>
+            <th>单价</th>
             <th>总价</th>
         </thead>
         <tbody>
         {% for d in item_detail %}
-            <tr><td>{{ d.name }}</td><td>{{ d.price }}</td><td>{{ d.quantity }}</td><td>{{ d.total }}</td></tr>
+            <tr>
+                <td>{{ d.name }}</td>
+                <td>{{ d.quantity }}</td>
+                <td>{{ d.price }}</td>
+                <td>{{ d.total }}</td>
+            </tr>
         {% endfor %}
         </tbody>
     </table>
 {% endif %}
-
+<button type="button">
+    <a href="{% url 'reception:check_out' serves_id %}">check out</a>
+</button>
 </body>
 </html>

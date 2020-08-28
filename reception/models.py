@@ -137,6 +137,15 @@ class Serves(models.Model):
         return '开始时间：' + show_time(self.start) + '\n女仆： ' + \
                ' '.join([str(m.maid) for m in maids]) + '\n场地：' + str(place.place)
 
+    def end_serves(self):
+        self.active = False
+        self.save()
+        for sm in self.servesmaids_set.filter(active=True):
+            sm.deactivate()
+
+        sp = self.servesplaces_set.get(active=True)
+        sp.deactivate()
+
     class Meta:
         verbose_name = "服务"
         verbose_name_plural = verbose_name
@@ -280,7 +289,9 @@ class Income(models.Model):
                       ('CS', '现金支付'), ('RE', '客服号转账'))
     method = models.CharField('支付方式', choices=PAYMENT_METHOD, max_length=2)
     amount = models.DecimalField('金额', max_digits=8, decimal_places=2)
-    swift_number = models.CharField('流水号', max_length=100, blank=True, null=True)
+    swift_number = models.CharField('流水号', max_length=100, blank=True, null=True,
+                                    validators=[RegexValidator(regex='^[0-9]+$',
+                                                               message='请输入正确流水号', code='nomatch')])
     receiver = models.CharField('核账人', max_length=100, blank=True, null=True)
     bill = models.ForeignKey(Bill, on_delete=models.PROTECT)
 
@@ -291,6 +302,9 @@ class Income(models.Model):
             t += i.amount
         self.bill.total = t
         self.bill.save()
+
+    def __str__(self):
+        return str(self.method) + ' ' + str(self.amount)
 
     class Meta:
         verbose_name = "入账"

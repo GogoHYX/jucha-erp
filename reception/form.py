@@ -7,9 +7,6 @@ from django.core.validators import RegexValidator
 class CheckInForm(forms.Form):
     maids = forms.ModelMultipleChoiceField(widget=forms.CheckboxSelectMultiple, queryset=available_maids())
     place = forms.ChoiceField(widget=forms.RadioSelect, choices=available_places)
-    #customer = forms.CharField(max_length=11, required=False,
-    #                           validators=[RegexValidator(regex='^[0-9]{11}$',
-    #                                                      message='请输入正确的11位手机号', code='nomatch')], )
 
 
 class ServesChange(forms.Form):
@@ -24,3 +21,19 @@ class ServesChange(forms.Form):
         super().__init__(*args, **kwargs)
         serves = Serves.objects.get(pk=serves_id)
         self.fields['maids_out'].queryset = serves.servesmaids_set
+
+
+class ManualForm(forms.ModelForm):
+    customer = forms.CharField(max_length=11, required=False,
+                               validators=[RegexValidator(regex='^[0-9]{11}$',
+                                                          message='请输入正确的11位手机号', code='nomatch')], )
+
+    class Meta:
+        model = ServesCharge
+        fields = ['manual', 'note']
+
+
+class PaymentForm(forms.ModelForm):
+    class Meta:
+        model = Income
+        exclude = ['bill']

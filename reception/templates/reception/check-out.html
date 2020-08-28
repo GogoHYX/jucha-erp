@@ -5,6 +5,76 @@
     <title>Check Out</title>
 </head>
 <body>
-
+{% if maid_detail %}
+    <h2>女仆收费</h2>
+    <table>
+        <thead>
+            <th>女仆</th>
+            <th>时长/h</th>
+            <th>单价</th>
+            <th>总价</th>
+        </thead>
+        <tbody>
+        {% for d in maid_detail %}
+            <tr>
+                <td>{{ d.name }}</td>
+                <td>{{ d.hour }}</td>
+                <td>{{ d.price }}</td>
+                <td>{{ d.total }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{% if place_detail %}
+    <h2>场地收费</h2>
+    <table>
+        <thead>
+            <th>场地</th>
+            <th>时长/h</th>
+            <th>单价</th>
+            <th>总价</th>
+        </thead>
+        <tbody>
+        {% for d in place_detail %}
+            <tr>
+                <td>{{ d.name }}</td>
+                <td>{{ d.hour }}</td>
+                <td>{{ d.price }}</td>
+                <td>{{ d.total }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{% if item_detail %}
+    <h2>项目收费</h2>
+    <table>
+        <thead>
+            <th>项目</th>
+            <th>数量</th>
+            <th>单价</th>
+            <th>总价</th>
+        </thead>
+        <tbody>
+        {% for d in item_detail %}
+            <tr>
+                <td>{{ d.name }}</td>
+                <td>{{ d.hour }}</td>
+                <td>{{ d.price }}</td>
+                <td>{{ d.total }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+<h2>总价：{{ total }}</h2>
+<form action="" method="POST">
+    {{ form }}
+    <input type="submit" value="付款">
+</form>
+<button type="button">
+    <a href="{% url 'reception:serves_detail' serves_id %}">返回</a>
+</button>
 </body>
 </html>

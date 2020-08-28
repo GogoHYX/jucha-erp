@@ -49,19 +49,12 @@ def ongoing_serves(request):
 
 
 def serves_detail(request, serves_id):
-    serves = get_object_or_404(Serves, pk=serves_id)
     if request.method == 'POST':
         return HttpResponseRedirect(reverse('serves_detail', args=[serves_id]))
     context = expense_detail(serves_id)
     print(context)
     template = loader.get_template('reception/serves-detail.html')
     return HttpResponse(template.render(context, request))
-
-
-class ServesMaidUpdate(UpdateView):
-    model = ServesMaids
-    fields = ['maid', 'start', 'end']
-    pass
 
 
 def serves_change(request, serves_id):
@@ -73,7 +66,7 @@ def serves_change(request, serves_id):
         data['time'] = timezone.now()
         data['serves_id'] = serves_id
         change_status(data)
-        return HttpResponseRedirect(reverse('reception:dashboard'))
+        return HttpResponseRedirect(reverse('reception:serves_detail', serves_id))
     form = ServesChange(serves_id=serves_id)
     template = loader.get_template('reception/serves-change.html')
     context = {
@@ -84,7 +77,77 @@ def serves_change(request, serves_id):
 
 
 def check_out(request, serves_id):
+    if request.Method == 'POST':
+        mf = ManualForm(request.POST)
+        if not mf.is_valid():
+            return HttpResponseRedirect(reverse('reception:check_out', serves_id))
+        serves = Serves.objects.get(pk=serves_id)
+        serves.end_serves()
+        context = expense_detail(serves_id)
+        bill = Bill()
+        if mf.cleaned_data['customer']:
+            bill.customer = mf.cleaned_data['customer']
+        bill.save()
+        charge = mf.save(commit=False)
+        charge.total = context['total']
+        charge.bill = bill
+        charge.serves = serves
+        charge.save()
+        return HttpResponseRedirect(reverse('pay', bill.id))
+
+    context = expense_detail(serves_id, update=False)
+    form = ManualForm
+    print(context)
+    context['form'] = form
     template = loader.get_template('reception/check-out.html')
+    return HttpResponse(template.render(context, request))
+
+
+def pay(request, bill_id):
+    if request.method == 'POST':
+        pass
+    template = loader.get_template('reception/pay.html')
+    bill = Bill.objects.get(pk=bill_id)
+    manual = 0
+    if bill.servescharge:
+        charge = bill.servescharge
+        unpaid = check_balance(charge)
+        manual = charge.manual
+    else:
+        charge = bill.depositcharge
+        unpaid = check_balance(charge, is_serves=False)
+    incomes = bill.income_set.all()
+    paid = charge.total - unpaid
+    cleared = unpaid <= 0
+    context = {
+        'bill': bill,
+        'manual': manual,
+        'paid': paid,
+        'total': charge.total,
+        'unpaid': unpaid,
+        'cleared': cleared,
+        'incomes': incomes,
+    }
+    return HttpResponse(template.render(context, request))
+
+
+def add_payment(request, bill_id):
+    if request.method == 'POST':
+        pf = PaymentForm(request.POST)
+        if not pf.is_valid():
+            return HttpResponseRedirect(reverse('reception:add_payment', bill_id))
+        income = pf.save(commit=False)
+        income.bill_id = bill_id
+        income.save()
+        return HttpResponseRedirect(reverse('reception:pay', bill_id))
+    template = loader.get_template('reception/add-payment.html')
+    bill = Bill.objects.get(pk=bill_id)
+    form = PaymentForm()
+    context = {
+        'bill': bill,
+        'form': form,
+    }
+    return HttpResponse(template.render(context, request))
 
 
 

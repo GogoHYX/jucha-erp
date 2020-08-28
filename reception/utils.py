@@ -55,19 +55,6 @@ def change_status(data):
         serves_place.activate()
 
 
-def end_serves(data):
-    time = data['time']
-    serves = Serves.objects.get(data['serves_id'])
-    serves.end = time
-    serves.active = False
-    serves.save()
-    for sm in serves.servesmaids_set.filter(active=True):
-        sm.deactivate()
-
-    sp = serves.servesplaces_set.get(active=True)
-    sp.deactivate()
-
-
 def add_item(data):
     si = ServesItems(item_id=data['item_id'], serves_id=data['serves_id'],
                      quantity=data['quantity'], price=data['price'])
@@ -83,23 +70,28 @@ def valid_hour(start, end):
     return half_hour / 2
 
 
-def expense_detail(serves_id):
+def expense_detail(serves_id, update=True):
     serves = Serves.objects.get(pk=serves_id)
     sm = serves.servesmaids_set.all()
     sp = serves.servesplaces_set.all()
     si = serves.servesitems_set.all()
     time = timezone.now()
+    serves.end = time
+    serves.save()
 
     maid_detail = []
     for m in sm:
         d = {}
-        if m.active:
-            m.update()
+        if m.active and update:
+            m.end = time
+            m.save()
         hour = valid_hour(m.start, m.end)
         price = m.price
         total = price * hour
         d['name'] = m.maid.cos_name
         d['price'] = price
+        d['start'] = show_time(m.start)
+        d['end'] = show_time(time)
         d['hour'] = hour
         d['total'] = total
         maid_detail.append(d)
@@ -107,13 +99,16 @@ def expense_detail(serves_id):
     place_detail = []
     for p in sp:
         d = {}
-        if p.active:
-            p.update()
+        if p.active and update:
+            p.end = time
+            p.save()
         hour = valid_hour(p.start, p.end)
         price = p.price
         total = price * hour
         d['name'] = p.place.name
         d['price'] = price
+        d['start'] = show_time(p.start)
+        d['end'] = show_time(time)
         d['hour'] = hour
         d['total'] = total
         place_detail.append(d)
@@ -150,11 +145,6 @@ def expense_detail(serves_id):
 
 def generate_charge(data):
     bill = Bill()
-    if data['voucher_id']:
-        bill.voucher = Voucher.objects.get(pk=data['voucher_id'])
-        if data['meituan']:
-            bill.voucher.meituan = True
-            bill.voucher.swift_number = data['voucher_swift_number']
     if data['is_serves']:
         charge = ServesCharge(total=data['total'], note=data['note'], bill_id=bill.id,
                               serves_id=data['serves_id'], manual=data['manual'])
@@ -165,27 +155,22 @@ def generate_charge(data):
     return charge
 
 
-def check_balance(data):
-    if data['is_serves']:
-        charge = ServesCharge.objects.get(pk=data['charge_id'])
+def use_voucher(data):
+    bill = Bill.objects.get(pk=data['bill_id'])
+    if data['voucher_id']:
+        bill.voucher = Voucher.objects.get(pk=data['voucher_id'])
+        if data['meituan']:
+            bill.voucher.meituan = True
+            bill.voucher.swift_number = data['voucher_swift_number']
+
+
+def check_balance(charge, is_serves=True):
+    if is_serves:
         unpaid = charge.total + charge.manual
     else:
-        charge = DepositCharge.objects.get(pk=data['charge_id'])
         unpaid = charge.total
 
-    return max(unpaid - charge.bill.total, 0)
-
-
-def add_payment(data):
-    amount = data['amount']
-    bill = Bill.objects.get(pk=data['bill_id'])
-    method = data['method']
-    income = Income(amount=amount, bill=bill, method=method)
-    if data['swift_number']:
-        income.swift_number = data['swift_number']
-    if data['receiver']:
-        income.receiver = data['receiver']
-    income.save()
+    return unpaid - charge.bill.total
 
 
 def cash_back_and_credit(data):
