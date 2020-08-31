@@ -5,44 +5,61 @@
     <title>付款</title>
 </head>
 <body>
-    <h2>消费:</h2>
-    <p>{{ total }}</p>
-    <h4>入账</h4>
+    <h2>总额:{{ total }}</h2>
+    <h2>入账</h2>
     <table>
         <thead>
-            <th>记录</th>
             <th>支付方式</th>
             <th>金额</th>
         </thead>
         <tbody>
         {% if incomes %}
-        {% for i in incomes %}
+            {% for i in incomes %}
             <tr>
-                <td>{{ forloop.counter }}</td>
                 <td>{{ i.method }}</td>
                 <td>{{ i.amount }}</td>
             </tr>
-        {% endfor %}
+            {% endfor %}
+        {% endif %}
+        {% if bill.voucher %}
             <tr>
-                <td>核增/减</td>
-                <td></td>
-                <td>{{ manual }}</td>
+                <td>{{ bill.voucher.name }}</td>
+                <td>{{ bill.voucher.amount }}</td>
             </tr>
+        {% endif %}
+        {% if bill.deposit_payment %}
             <tr>
-                <td>合计</td>
-                <td></td>
-                <td>{% total-unpaid %}</td>
+                <td>会员卡支付</td>
+                <td>{{ bill.deposit_payment.amount }}</td>
+            </tr>
+        {% endif %}
+            <tr>
+                <td>合计入账</td>
+                <td>{{ paid }}</td>
             </tr>
             <tr>
                 <td>需支付</td>
-                <td></td>
                 <td>{{ unpaid }}</td>
             </tr>
-        {% endif %}
         </tbody>
     </table>
-<button type="button">
-    <a href="{% url 'reception:serves_detail' serves_id %}">返回</a>
-</button>
+    {% if is_serves %}
+    <button type="button">
+        <a href="{% url 'reception:serves_detail' back_id %}">返回</a>
+    </button>
+    <button type="button">
+    <a href="{% url 'reception:serves_detail' bill_id %}">会员卡付款</a>
+    </button>
+    <button type="button">
+    <a href="{% url 'reception:serves_detail' bill_id %}">使用代金券</a>
+    </button>
+    {% else %}
+    <button type="button">
+    <a href="{% url 'reception:dashboard'%}">返回</a>
+    </button>
+    {% endif %}
+    <button type="button">
+    <a href="{% url 'reception:add_payment' bill_id %}">添加入账</a>
+    </button>
 </body>
 </html>

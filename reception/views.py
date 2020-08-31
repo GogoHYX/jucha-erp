@@ -110,21 +110,26 @@ def pay(request, bill_id):
     bill = Bill.objects.get(pk=bill_id)
     manual = 0
     if bill.servescharge:
+        is_serves = True
         charge = bill.servescharge
         unpaid = check_balance(charge)
         manual = charge.manual
+        back_id = charge.serves.id
     else:
+        is_serves = False
         charge = bill.depositcharge
         unpaid = check_balance(charge, is_serves=False)
+        back_id = 0
     incomes = bill.income_set.all()
     paid = charge.total - unpaid
     cleared = unpaid <= 0
     context = {
+        'is_serves': is_serves,
+        'back_id': back_id,
         'bill': bill,
-        'manual': manual,
         'paid': paid,
-        'total': charge.total,
-        'unpaid': unpaid,
+        'total': charge.total + manual,
+        'unpaid': max(0, unpaid),
         'cleared': cleared,
         'incomes': incomes,
     }

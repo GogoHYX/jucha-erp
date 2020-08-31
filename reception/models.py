@@ -104,6 +104,17 @@ class Menu(models.Model):
         verbose_name_plural = verbose_name
 
 
+class Time(models.Model):
+    time = models.DateTimeField('时间')
+
+    def __str__(self):
+        return self.time.strftime('%Y-%m-%d %H:%M')
+
+    class Meta:
+        verbose_name = '时间戳'
+        verbose_name_plural = verbose_name
+
+
 class Reserve(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
     time = models.DateTimeField('开始时间', default=now)
@@ -275,7 +286,7 @@ class DepositPayment(models.Model):
 
 class Bill(models.Model):
     total = models.DecimalField('收款金额', max_digits=8, decimal_places=2, default=0)
-    voucher = models.ForeignKey(Voucher, on_delete=models.PROTECT, blank=True, null=True)
+    voucher = models.OneToOneField(Voucher, on_delete=models.PROTECT, blank=True, null=True)
     deposit_payment = models.OneToOneField(DepositPayment, on_delete=models.PROTECT, blank=True, null=True)
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT, blank=True, null=True)
 
