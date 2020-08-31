@@ -164,15 +164,6 @@ def use_voucher(data):
             bill.voucher.swift_number = data['voucher_swift_number']
 
 
-def check_balance(charge, is_serves=True):
-    if is_serves:
-        unpaid = charge.total + charge.manual
-    else:
-        unpaid = charge.total
-
-    return unpaid - charge.bill.total
-
-
 def cash_back_and_credit(data):
     pass
 

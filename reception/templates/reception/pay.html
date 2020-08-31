@@ -5,6 +5,15 @@
     <title>付款</title>
 </head>
 <body>
+    {% if logged_in %}
+    <p>客户手机：{{ form.cleaned_data.phone }}</p>
+    {% else %}
+    <form action="" method="POST">
+    {% csrf_token %}
+    {{ form }}
+    <input type="submit" value="确认">
+    </form>
+    {% endif %}
     <h2>总额:{{ total }}</h2>
     <h2>入账</h2>
     <table>
@@ -44,22 +53,33 @@
         </tbody>
     </table>
     {% if is_serves %}
-    <button type="button">
-        <a href="{% url 'reception:serves_detail' back_id %}">返回</a>
-    </button>
-    <button type="button">
-    <a href="{% url 'reception:serves_detail' bill_id %}">会员卡付款</a>
-    </button>
-    <button type="button">
-    <a href="{% url 'reception:serves_detail' bill_id %}">使用代金券</a>
-    </button>
+        <button type="button">
+            <a href="{% url 'reception:serves_detail' back_id %}">返回</a>
+        </button>
+            {% if can_use_deposit %}
+            <button type="button">
+            <a href="{% url 'reception:use_deposit' bill_id %}">会员卡付款</a>
+            </button>
+            {% endif %}
+            {% if have_voucher %}
+            <button type="button">
+            <a href="{% url 'reception:use_voucher' bill_id %}">使用已有代金券</a>
+            </button>
+            {% endif %}
+        <button type="button">
+        <a href="{% url 'reception:use_meituan' bill_id %}">使用美团代金券</a>
+        </button>
     {% else %}
-    <button type="button">
-    <a href="{% url 'reception:dashboard'%}">返回</a>
-    </button>
+        <button type="button">
+        <a href="{% url 'reception:dashboard'%}">返回</a>
+        </button>
     {% endif %}
+    {% if cleared %}
+    <a href="{% url 'reception:done' bill_id%}">完成</a>
+    {% else %}
     <button type="button">
     <a href="{% url 'reception:add_payment' bill_id %}">添加入账</a>
     </button>
+    {% endif %}
 </body>
 </html>

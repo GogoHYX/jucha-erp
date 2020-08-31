@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>添加付款方式</title>
+    <title>会员卡支付</title>
 </head>
 <body>
+    <p>余额：{{ deposit }}</p>
     <form action="" method="POST">
         {% csrf_token %}
         {{ form }}
-        <input type="submit" value="确认入账">
+        <input type="submit" value="确认">
     </form>
 </body>
 </html>

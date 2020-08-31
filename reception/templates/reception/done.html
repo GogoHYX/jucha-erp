@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>完成</title>
+</head>
+<body>
+<p>支付完成！还有<span id="sp">5</span>秒跳转到主页</p>
+<script>
+    onload=function () {
+        setInterval(go,1000)
+    };
+    var x=4;
+    function go() {
+
+        if (x>=0){
+            document.getElementById("sp").innerText=x;
+        }else {
+            location.href="{% url 'reception:dashboard' %}";
+        }
+        x--;
+    }
+</script>
+</body>
+</html>

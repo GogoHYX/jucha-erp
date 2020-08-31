@@ -75,6 +75,12 @@
     </table>
 {% endif %}
 <button type="button">
+    <a href="{% url 'reception:change_status' serves_id %}">改变女仆/场地状态</a>
+</button>
+<button type="button">
+    <a href="{% url 'reception:check_out' serves_id %}">check out</a>
+</button>
+<button type="button">
     <a href="{% url 'reception:check_out' serves_id %}">check out</a>
 </button>
 </body>

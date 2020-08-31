@@ -54,7 +54,7 @@ class Customer(models.Model):
                                                         message='请输入正确的11位手机号', code='nomatch')],
                              unique=True, )
     GENDER_CHOICE = ((u'M', u'男'), (u'F', u'女'),)
-    gender = models.CharField(max_length=2, choices=GENDER_CHOICE, null=True)
+    gender = models.CharField(max_length=2, choices=GENDER_CHOICE, blank=True, null=True)
     credit = models.IntegerField('积分', default=0)
 
     def __str__(self):
@@ -65,11 +65,16 @@ class Customer(models.Model):
         verbose_name_plural = verbose_name
 
 
-class Deposit(models.Model):
+class Privilege(models.Model):
+    name = models.CharField('名称', max_length='40', unique=True)
+    note = models.CharField('备注', max_length='200')
+
+
+class Card(models.Model):
     customer = models.OneToOneField(Customer, on_delete=models.PROTECT)
     number = models.CharField('会员卡号', max_length=20, unique=True)
-    discount = models.DecimalField('折扣', max_digits=2, decimal_places=1)
     deposit = models.DecimalField('余额', max_digits=8, decimal_places=2)
+    privilege = models.ManyToManyField(Privilege, blank=True, null=True)
 
     class Meta:
         verbose_name = '储值卡'
@@ -101,17 +106,6 @@ class Menu(models.Model):
     class Meta:
         ordering = ['item']
         verbose_name = "价目表"
-        verbose_name_plural = verbose_name
-
-
-class Time(models.Model):
-    time = models.DateTimeField('时间')
-
-    def __str__(self):
-        return self.time.strftime('%Y-%m-%d %H:%M')
-
-    class Meta:
-        verbose_name = '时间戳'
         verbose_name_plural = verbose_name
 
 
@@ -275,23 +269,50 @@ class Voucher(models.Model):
         verbose_name_plural = verbose_name
 
 
-class DepositPayment(models.Model):
-    amount = models.DecimalField('会员卡扣款', decimal_places=2, max_digits=8, default=0)
-    card = models.ForeignKey(Deposit, on_delete=models.PROTECT)
-
-    class Meta:
-        verbose_name = '会员卡支付'
-        verbose_name_plural = verbose_name
-
-
 class Bill(models.Model):
     total = models.DecimalField('收款金额', max_digits=8, decimal_places=2, default=0)
     voucher = models.OneToOneField(Voucher, on_delete=models.PROTECT, blank=True, null=True)
-    deposit_payment = models.OneToOneField(DepositPayment, on_delete=models.PROTECT, blank=True, null=True)
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT, blank=True, null=True)
 
     class Meta:
         verbose_name = "账单"
+        verbose_name_plural = verbose_name
+
+    def can_use_deposit(self):
+        if self.depositcharge:
+            return False
+        if self.customer:
+            if self.customer.deposit:
+                return True
+        return False
+
+    def valid_income(self):
+        if self.depositcharge:
+            return 0
+        t = 0
+        for i in self.income_set.all():
+            t += i.amount
+        return t
+
+    def save(self, *args, **kwargs):
+        t = 0
+        for i in self.income_set.all():
+            t += i.amount
+        if self.depositpayment:
+            t += self.depositpayment.amount
+        if self.voucher:
+            t += self.voucher.type.amount
+        self.total = t
+        super(Bill, self).save(*args, **kwargs)
+
+
+class DepositPayment(models.Model):
+    amount = models.DecimalField('会员卡扣款', decimal_places=2, max_digits=8, default=0)
+    card = models.ForeignKey(Card, on_delete=models.PROTECT)
+    bill = models.OneToOneField(Bill, on_delete=models.PROTECT)
+
+    class Meta:
+        verbose_name = '会员卡支付'
         verbose_name_plural = verbose_name
 
 
@@ -308,10 +329,6 @@ class Income(models.Model):
 
     def save(self, *args, **kwargs):
         super(Income, self).save(*args, **kwargs)
-        t = 0
-        for i in self.bill.income_set.all():
-            t += i.amount
-        self.bill.total = t
         self.bill.save()
 
     def __str__(self):
@@ -334,21 +351,16 @@ class Charge(models.Model):
         verbose_name = "收款"
         verbose_name_plural = verbose_name
 
+    def unpaid_amount(self):
+        return self.total - self.bill.total
+
 
 class ServesCharge(Charge):
     serves = models.OneToOneField(Serves, on_delete=models.PROTECT)
     manual = models.IntegerField('核增、核减', default=0)
-    returned = models.BooleanField('返现', default=False)
 
-    def cash_return(self):
-        valid_total = self.manual + self.bill.total
-        amount = valid_total * CASH_BACK_PERCENTAGE
-        card = self.bill.customer.deposit
-        prev = card.deposit
-        card.deposit = prev + amount
-        card.save()
-        self.returned = True
-        self.save()
+    def unpaid_amount(self):
+        return super().unpaid_amount() + self.manual
 
     class Meta:
         verbose_name = "服务收款"
