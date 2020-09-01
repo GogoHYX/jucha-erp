@@ -49,7 +49,7 @@ class DepositPaymentForm(forms.ModelForm):
         bill_id = kwargs.pop('bill_id', ())
         super().__init__(*args, **kwargs)
         bill = Bill.objects.get(pk=bill_id)
-        deposit_amount = bill.customer.deposit.amount
+        deposit_amount = bill.customer.card.deposit
         self.fields['amount'].initial = min(bill.servescharge.unpaid_amount(), deposit_amount)
 
     class Meta:
@@ -58,13 +58,13 @@ class DepositPaymentForm(forms.ModelForm):
 
 
 class UseVoucherForm(forms.Form):
-    voucher = forms.ModelMultipleChoiceField(widget=forms.CheckboxSelectMultiple, label='使用代金券',
+    voucher = forms.ModelChoiceField(widget=forms.RadioSelect, label='使用代金券',
                                              queryset=Voucher.objects.none(), required=False)
 
     def __init__(self, *args, **kwargs):
-        customer = kwargs.pop('customer', ())
+        cid = kwargs.pop('customer', ())
         super().__init__(*args, **kwargs)
-        c = Customer.objects.get(phone=customer)
+        c = Customer.objects.get(pk=cid)
         self.fields['voucher'].queryset = c.voucher_set.all()
 
 
@@ -94,7 +94,7 @@ class AddItemForm(forms.ModelForm):
         model = ServesItems
         exclude = ['serves', 'price']
         widgets = {
-            'item': forms.CheckboxSelectMultiple,
+            'item': forms.RadioSelect,
         }
 
     def __init__(self, *args, **kwargs):

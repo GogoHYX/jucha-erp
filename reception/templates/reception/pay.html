@@ -6,7 +6,7 @@
 </head>
 <body>
     {% if logged_in %}
-    <p>客户手机：{{ form.cleaned_data.phone }}</p>
+    <p>客户手机：{{ bill.customer.phone }}</p>
     {% else %}
     <form action="" method="POST">
     {% csrf_token %}
@@ -32,14 +32,14 @@
         {% endif %}
         {% if bill.voucher %}
             <tr>
-                <td>{{ bill.voucher.name }}</td>
-                <td>{{ bill.voucher.amount }}</td>
+                <td>代金券{{ bill.voucher.type.name }}</td>
+                <td>{{ bill.voucher.type.amount }}</td>
             </tr>
         {% endif %}
-        {% if bill.deposit_payment %}
+        {% if bill.depositpayment %}
             <tr>
                 <td>会员卡支付</td>
-                <td>{{ bill.deposit_payment.amount }}</td>
+                <td>{{ bill.depositpayment.amount }}</td>
             </tr>
         {% endif %}
             <tr>
@@ -56,18 +56,18 @@
         <button type="button">
             <a href="{% url 'reception:serves_detail' back_id %}">返回</a>
         </button>
-            {% if can_use_deposit %}
+            {% if bill.customer.card %}
             <button type="button">
-            <a href="{% url 'reception:use_deposit' bill_id %}">会员卡付款</a>
+                <a href="{% url 'reception:use_deposit' bill.id %}">会员卡付款</a>
             </button>
             {% endif %}
             {% if have_voucher %}
             <button type="button">
-            <a href="{% url 'reception:use_voucher' bill_id %}">使用已有代金券</a>
+                <a href="{% url 'reception:use_voucher' bill.id %}">使用已有优惠券</a>
             </button>
             {% endif %}
         <button type="button">
-        <a href="{% url 'reception:use_meituan' bill_id %}">使用美团代金券</a>
+            <a href="{% url 'reception:use_meituan' bill.id %}">使用美团优惠券</a>
         </button>
     {% else %}
         <button type="button">
@@ -75,10 +75,10 @@
         </button>
     {% endif %}
     {% if cleared %}
-    <a href="{% url 'reception:done' bill_id%}">完成</a>
+    <a href="{% url 'reception:done' bill.id%}">完成</a>
     {% else %}
     <button type="button">
-    <a href="{% url 'reception:add_payment' bill_id %}">添加入账</a>
+    <a href="{% url 'reception:add_payment' bill.id %}">添加入账</a>
     </button>
     {% endif %}
 </body>

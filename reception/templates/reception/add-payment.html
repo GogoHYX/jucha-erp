@@ -10,5 +10,13 @@
         {{ form }}
         <input type="submit" value="确认入账">
     </form>
+    <button type="button">
+        <a href="{% url 'reception:pay' bill.id %}">返回</a>
+    </button>
+    {% if deposit %}
+    <button>
+        <a href="{% url 'reception:dashboard' %}">充值</a>
+    </button>
+    {% endif %}
 </body>
 </html>

@@ -10,7 +10,7 @@ def ongoing_serves():
 
 
 def available_maids():
-    am = Maid.objects.filter(available=True)
+    am = Maid.objects.filter(available=True, active=True)
     return am
 
 
@@ -91,7 +91,7 @@ def expense_detail(serves_id, update=True):
         d['name'] = m.maid.cos_name
         d['price'] = price
         d['start'] = show_time(m.start)
-        d['end'] = show_time(time)
+        d['end'] = show_time(m.end)
         d['hour'] = hour
         d['total'] = total
         maid_detail.append(d)
@@ -108,7 +108,7 @@ def expense_detail(serves_id, update=True):
         d['name'] = p.place.name
         d['price'] = price
         d['start'] = show_time(p.start)
-        d['end'] = show_time(time)
+        d['end'] = show_time(p.end)
         d['hour'] = hour
         d['total'] = total
         place_detail.append(d)
@@ -119,7 +119,7 @@ def expense_detail(serves_id, update=True):
         price = i.price
         quantity = i.quantity
         total = price * quantity
-        d['name'] = i.item.name
+        d['name'] = i.item.item
         d['price'] = price
         d['quantity'] = quantity
         d['total'] = total

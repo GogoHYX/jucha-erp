@@ -70,6 +70,7 @@
 {% endif %}
 <h2>总价：{{ total }}</h2>
 <form action="" method="POST">
+    {% csrf_token %}
     {{ form }}
     <input type="submit" value="付款">
 </form>

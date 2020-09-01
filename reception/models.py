@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.timezone import now, get_current_timezone
 from django.core.validators import RegexValidator
+from django.core.exceptions import ObjectDoesNotExist
 
 MAID_PRICE = 90
 CASH_BACK_PERCENTAGE = 0.1
@@ -21,8 +22,8 @@ class Maid(models.Model):
                              unique=True)
 
     available = models.BooleanField('空闲', default=False)
-    active = models.BooleanField('在职')
-    fulltime = models.BooleanField('全职')
+    active = models.BooleanField('在职', default=True)
+    fulltime = models.BooleanField('全职', default=False)
     price = models.PositiveSmallIntegerField('价格', default=MAID_PRICE)
 
     def __str__(self):
@@ -66,15 +67,15 @@ class Customer(models.Model):
 
 
 class Privilege(models.Model):
-    name = models.CharField('名称', max_length='40', unique=True)
-    note = models.CharField('备注', max_length='200')
+    name = models.CharField('名称', max_length=40, unique=True)
+    note = models.CharField('备注', max_length=200)
 
 
 class Card(models.Model):
     customer = models.OneToOneField(Customer, on_delete=models.PROTECT)
     number = models.CharField('会员卡号', max_length=20, unique=True)
     deposit = models.DecimalField('余额', max_digits=8, decimal_places=2)
-    privilege = models.ManyToManyField(Privilege, blank=True, null=True)
+    privilege = models.ManyToManyField(Privilege, blank=True)
 
     class Meta:
         verbose_name = '储值卡'
@@ -138,7 +139,7 @@ class Serves(models.Model):
 
     def __str__(self):
         maids = self.servesmaids_set.all()
-        place = self.servesplaces_set.all()[0]
+        place = self.servesplaces_set.order_by('-end')[0]
         return '开始时间：' + show_time(self.start) + '\n女仆： ' + \
                ' '.join([str(m.maid) for m in maids]) + '\n场地：' + str(place.place)
 
@@ -167,7 +168,7 @@ class ServesItems(models.Model):
 
     class Meta:
         ordering = ['serves']
-        verbose_name = "服务项目"
+        verbose_name = "服务项目记录"
         verbose_name_plural = verbose_name
 
 
@@ -203,8 +204,8 @@ class ServesMaids(models.Model):
         return '开始时间：' + show_time(self.start) + ' ' + str(self.maid)
 
     class Meta:
-        ordering = ['serves']
-        verbose_name = "服务女仆"
+        ordering = ['maid']
+        verbose_name = "服务女仆记录"
         verbose_name_plural = verbose_name
 
 
@@ -237,11 +238,11 @@ class ServesPlaces(models.Model):
         super(ServesPlaces, self).save(*args, **kwargs)
 
     def __str__(self):
-        return str(self.serves) + ' ' + str(self.place)
+        return str(self.place) + ' ' + show_time(self.start) + ' 到 ' + show_time(self.end)
 
     class Meta:
-        ordering = ['start']
-        verbose_name = "服务场所"
+        ordering = ['place']
+        verbose_name = "服务场所记录"
         verbose_name_plural = verbose_name
 
 
@@ -250,6 +251,9 @@ class VoucherType(models.Model):
     note = models.CharField('使用条件', max_length=200)
     revenue = models.DecimalField('实际收入', decimal_places=2, max_digits=8)
     amount = models.PositiveSmallIntegerField('抵扣金额')
+
+    def __str__(self):
+        return self.name
 
     class Meta:
         verbose_name = "代金劵种类"
@@ -262,6 +266,9 @@ class Voucher(models.Model):
     used = models.BooleanField('已使用', default=False)
     meituan = models.BooleanField('美团/大众', default=False)
     swift_number = models.CharField('流水号', max_length=100, blank=True, null=True)
+
+    def __str__(self):
+        return str(self.type)
 
     class Meta:
         unique_together = ('meituan', 'swift_number')
@@ -278,16 +285,8 @@ class Bill(models.Model):
         verbose_name = "账单"
         verbose_name_plural = verbose_name
 
-    def can_use_deposit(self):
-        if self.depositcharge:
-            return False
-        if self.customer:
-            if self.customer.deposit:
-                return True
-        return False
-
     def valid_income(self):
-        if self.depositcharge:
+        if hasattr(self, 'depositcharge'):
             return 0
         t = 0
         for i in self.income_set.all():
@@ -298,7 +297,7 @@ class Bill(models.Model):
         t = 0
         for i in self.income_set.all():
             t += i.amount
-        if self.depositpayment:
+        if hasattr(self, 'depositpayment'):
             t += self.depositpayment.amount
         if self.voucher:
             t += self.voucher.type.amount
@@ -342,7 +341,7 @@ class Income(models.Model):
 
 class Charge(models.Model):
     total = models.DecimalField('总额', max_digits=8, decimal_places=2)
-    note = models.CharField('备注', max_length=200)
+    note = models.CharField('备注', max_length=200, blank=True)
     bill = models.OneToOneField(Bill, on_delete=models.PROTECT)
     paid = models.BooleanField('已支付', default=False)
 

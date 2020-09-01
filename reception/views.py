@@ -6,6 +6,7 @@ from django.db.models.query import EmptyQuerySet
 from django.template import loader
 from django.urls import reverse
 from django.views import generic
+from decimal import Decimal
 
 from .models import *
 from .form import *
@@ -16,8 +17,6 @@ from .utils import *
 
 def dashboard(request):
     template = loader.get_template('reception/dashboard.html')
-    maids = ('a', 'b', 'c')
-    places = ('d', 'e', 'f')
     context = {
 
     }
@@ -48,6 +47,7 @@ def serves_detail(request, serves_id):
         return HttpResponseRedirect(reverse('serves_detail', args=[serves_id]))
     context = expense_detail(serves_id)
     print(context)
+    context['serves_id'] = serves_id
     return render(request, 'reception/serves-detail.html', context)
 
 
@@ -60,7 +60,7 @@ def serves_change(request, serves_id):
         data['time'] = timezone.now()
         data['serves_id'] = serves_id
         change_status(data)
-        return HttpResponseRedirect(reverse('reception:serves_detail', serves_id))
+        return HttpResponseRedirect(reverse('reception:serves_detail', args=[serves_id]))
     form = ServesChange(serves_id=serves_id)
     context = {
         'serves_id': serves_id,
@@ -77,7 +77,7 @@ def add_item(request, serves_id):
             serves_item.price = serves_item.item.price
             serves_item.serves_id = serves_id
             serves_item.save()
-            return HttpResponseRedirect(reverse('reception:serves_detail', serves_id))
+            return HttpResponseRedirect(reverse('reception:serves_detail', args=[serves_id]))
     form = AddItemForm()
     context = {
         'serves_id': serves_id,
@@ -87,29 +87,31 @@ def add_item(request, serves_id):
 
 
 def check_out(request, serves_id):
-    if request.Method == 'POST':
+    if request.method == 'POST':
         mf = ManualForm(request.POST)
         if not mf.is_valid():
             return HttpResponseRedirect(reverse('reception:check_out', serves_id))
         serves = Serves.objects.get(pk=serves_id)
-        serves.end_serves()
+
         context = expense_detail(serves_id)
         bill = Bill()
         if mf.cleaned_data['customer']:
-            bill.customer = mf.cleaned_data['customer']
+            bill.customer = Customer.objects.get(phone=mf.cleaned_data['customer'])
         bill.save()
         charge = mf.save(commit=False)
         charge.total = context['total']
         charge.bill = bill
         charge.serves = serves
         charge.save()
-        return HttpResponseRedirect(reverse('pay', bill.id))
+        serves.end_serves()
+        return HttpResponseRedirect(reverse('pay', args=[bill.id]))
 
     context = expense_detail(serves_id, update=False)
     form = ManualForm
     print(context)
     context['form'] = form
-    return render(request, 'reception', context)
+    context['serves_id'] = serves_id
+    return render(request, 'reception/check-out.html', context)
 
 
 def pay(request, bill_id):
@@ -120,12 +122,18 @@ def pay(request, bill_id):
     if request.method == 'POST':
         form = LoginForm(request.POST)
         if not form.is_valid():
-            failure(request, bill_id, '手机号不正确')
-        customer = form.save()
+            try:
+                customer = Customer.objects.get(phone=form.data['phone'])
+            except ObjectDoesNotExist:
+                return failure(request, bill_id, '手机号不正确')
+        else:
+            customer = form.save()
         bill.customer = customer
         bill.save()
+    if bill.customer:
         logged_in = True
-        have_voucher = not isinstance(customer.voucher_set.filter(used=False), EmptyQuerySet)
+        if bill.customer.voucher_set.filter(used=False):
+            have_voucher = True
     manual = 0
     if bill.servescharge:
         is_serves = True
@@ -142,7 +150,6 @@ def pay(request, bill_id):
     paid = charge.total - unpaid
     cleared = unpaid <= 0
     context = {
-        'can_use_deposit': bill.can_use_deposit(),
         'is_serves': is_serves,
         'back_id': back_id,
         'bill': bill,
@@ -155,6 +162,7 @@ def pay(request, bill_id):
         'logged_in': logged_in,
         'have_voucher': have_voucher,
     }
+    print(context)
     return render(request, 'reception/pay.html', context)
 
 
@@ -162,11 +170,11 @@ def add_payment(request, bill_id):
     if request.method == 'POST':
         pf = PaymentForm(request.POST)
         if not pf.is_valid():
-            failure(request, '请输入正确数额', bill_id)
+            return failure(request, bill_id, '手机号不正确')
         income = pf.save(commit=False)
         income.bill_id = bill_id
         income.save()
-        return HttpResponseRedirect(reverse('reception:pay', bill_id))
+        return HttpResponseRedirect(reverse('reception:pay', args=[bill_id]))
     bill = Bill.objects.get(pk=bill_id)
     form = PaymentForm()
     context = {
@@ -179,16 +187,14 @@ def add_payment(request, bill_id):
 def use_voucher(request, bill_id):
     bill = Bill.objects.get(pk=bill_id)
     if request.method == 'POST':
-        form = UseVoucherForm(request.POST)
+        form = UseVoucherForm(data=request.POST, customer=bill.customer_id)
         if form.is_valid():
             v = form.cleaned_data['voucher']
-            v.used = True
-            v.save()
             bill.voucher = v
             bill.save()
-        return HttpResponseRedirect(reverse('reception:pay', bill_id))
-    form = UseVoucherForm()
-    return render(request, 'reception/use-voucher.html', {'form': form })
+        return HttpResponseRedirect(reverse('reception:pay', args=[bill_id]))
+    form = UseVoucherForm(customer=bill.customer_id)
+    return render(request, 'reception/use-voucher.html', {'form': form, 'bill_id': bill_id})
 
 
 def use_meituan(request, bill_id):
@@ -203,7 +209,7 @@ def use_meituan(request, bill_id):
             v.save()
             bill.voucher = v
             bill.save()
-        return HttpResponseRedirect(reverse('reception:pay', bill_id))
+        return HttpResponseRedirect(reverse('reception:pay', args=['bill_id']))
     form = UseMeituanForm()
     return render(request, 'reception/use-voucher.html', {'form': form})
 
@@ -211,11 +217,11 @@ def use_meituan(request, bill_id):
 def use_deposit(request, bill_id):
     bill = Bill.objects.get(pk=bill_id)
     if request.method == 'POST':
-        dp = DepositPaymentForm(request.POST)
+        dp = DepositPaymentForm(data=request.POST, bill_id = bill_id)
         if not dp.is_valid():
-            failure(request, '请输入正确数额', bill_id)
+            return failure(request, bill_id, '请输入正确数额')
         if dp.cleaned_data['amount'] > bill.customer.card.deposit:
-            failure(request, '余额不足', bill_id)
+            return failure(request, bill_id, '余额不足')
 
         deposit_payment = dp.save(commit=False)
         deposit_payment.bill = bill
@@ -225,10 +231,11 @@ def use_deposit(request, bill_id):
         card.save()
         deposit_payment.save()
         bill.save()
-        return HttpResponseRedirect(reverse('reception:pay', bill_id))
-    form = DepositPaymentForm()
+        return HttpResponseRedirect(reverse('reception:pay', args=[bill_id]))
+    form = DepositPaymentForm(bill_id=bill_id)
     context = {
-        'deposit': bill.customer.card.deposit,
+        'bill': bill,
+        'deposit': True,
         'form': form,
     }
     return render(request, 'reception/add-payment.html', context)
@@ -236,21 +243,23 @@ def use_deposit(request, bill_id):
 
 def done(request, bill_id):
     bill = Bill.objects.get(pk=bill_id)
+    bill.voucher.used = True
+    bill.voucher.save()
     if bill.customer:
         i = bill.valid_income()
         bill.customer.credit += i
         bill.customer.save()
         if bill.customer.card:
             card = bill.customer.card
-            card.deposit += i * CASH_BACK_PERCENTAGE
+            card.deposit += Decimal.from_float(float(i) * CASH_BACK_PERCENTAGE)
             card.save()
     return render(request, 'reception/done.html')
 
 
 def failure(request, bill_id, message):
     return render(request, 'reception/failure.html', {
-        'bill_id': request.POST.charge_id,
-        'message': request.POST.message,
+        'bill_id': bill_id,
+        'message': message,
     })
 
 
