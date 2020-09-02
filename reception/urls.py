@@ -5,10 +5,12 @@ from . import views
 app_name = 'reception'
 
 urlpatterns = [
+    path('login/', views.login, name='login'),
+    path('logout/', views.logout, name='logout'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('set-schedule/', views.set_schedule, name='set_schedule'),
     path('check-in/', views.check_in, name='check_in'),
-    path('ongoing-serves/', views.ongoing, name='ongoing_serves'),
+    path('ongoing/', views.ongoing, name='ongoing'),
     path('serves/<int:serves_id>/', views.serves_detail, name='serves_detail'),
     path('serves/<int:serves_id>/change/', views.serves_change, name='change_status'),
     path('serves/<int:serves_id>/add-item/', views.add_item, name='add_item'),

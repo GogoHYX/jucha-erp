@@ -1,14 +1,13 @@
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import get_object_or_404, render
-from django.views.generic.edit import UpdateView, CreateView
-from django.db.models.query import EmptyQuerySet
+from django.shortcuts import render, redirect
+from django.contrib import auth
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import permission_required
 # Create your views here.
 from django.template import loader
 from django.urls import reverse
-from django.views import generic
 from decimal import Decimal
 
-from .models import *
 from .form import *
 from .utils import *
 
@@ -19,11 +18,14 @@ def dashboard(request):
     context = {
         'serves_list': Serves.objects.filter(active=True),
         'available_maids': available_maids(),
-        'available_places': available_places(),
+        'available_places': Place.objects.filter(available=True),
+        'user': request.user,
     }
     return render(request, 'reception/dashboard.html', context)
 
 
+@login_required
+@permission_required('reception.check_in_serves')
 def check_in(request):
     if request.method == 'POST':
         form = CheckInForm(data=request.POST)
@@ -36,6 +38,7 @@ def check_in(request):
     return render(request, 'reception/check-in.html', {'form': form})
 
 
+@login_required
 def ongoing(request):
     context = {
         'serves_list': Serves.objects.filter(active=True),
@@ -45,6 +48,7 @@ def ongoing(request):
     return render(request, 'reception/ongoing.html', context)
 
 
+@login_required
 def serves_detail(request, serves_id):
     if request.method == 'POST':
         return HttpResponseRedirect(reverse('serves_detail', args=[serves_id]))
@@ -54,6 +58,8 @@ def serves_detail(request, serves_id):
     return render(request, 'reception/serves-detail.html', context)
 
 
+@login_required
+@permission_required('reception.change_serves_status')
 def serves_change(request, serves_id):
     if request.method == 'POST':
         sc = ServesChange(serves_id=serves_id, data=request.POST)
@@ -72,6 +78,8 @@ def serves_change(request, serves_id):
     return render(request, 'reception/serves-change.html', context)
 
 
+@login_required
+@permission_required('reception.change_serves_status')
 def add_item(request, serves_id):
     if request.method == 'POST':
         af = AddItemForm(request.POST)
@@ -89,6 +97,8 @@ def add_item(request, serves_id):
     return render(request, 'reception/add-item.html', context)
 
 
+@login_required
+@permission_required('reception.check_out_serves')
 def check_out(request, serves_id):
     if request.method == 'POST':
         mf = ManualForm(request.POST)
@@ -107,7 +117,7 @@ def check_out(request, serves_id):
         charge.serves = serves
         charge.save()
         serves.end_serves()
-        return HttpResponseRedirect(reverse('pay', args=[bill.id]))
+        return HttpResponseRedirect(reverse('reception:pay', args=[bill.id]))
 
     context = expense_detail(serves_id, update=False)
     form = ManualForm
@@ -117,6 +127,8 @@ def check_out(request, serves_id):
     return render(request, 'reception/check-out.html', context)
 
 
+@login_required
+@permission_required('reception.receive_money')
 def pay(request, bill_id):
     bill = Bill.objects.get(pk=bill_id)
     logged_in = False
@@ -152,7 +164,7 @@ def pay(request, bill_id):
     else:
         raise Exception
     incomes = bill.income_set.all()
-    paid = charge.total - unpaid
+    paid = charge.total + manual - unpaid
     cleared = unpaid <= 0
     context = {
         'is_serves': is_serves,
@@ -171,13 +183,16 @@ def pay(request, bill_id):
     return render(request, 'reception/pay.html', context)
 
 
+@login_required
+@permission_required('reception.receive_money')
 def add_payment(request, bill_id):
     if request.method == 'POST':
         pf = PaymentForm(request.POST)
         if not pf.is_valid():
-            return failure(request, bill_id, '手机号不正确')
+            return failure(request, bill_id, '未知失败')
         income = pf.save(commit=False)
         income.bill_id = bill_id
+        income.receiver = request.user
         income.save()
         return HttpResponseRedirect(reverse('reception:pay', args=[bill_id]))
     bill = Bill.objects.get(pk=bill_id)
@@ -189,6 +204,8 @@ def add_payment(request, bill_id):
     return render(request, 'reception/add-payment.html', context)
 
 
+@login_required
+@permission_required('reception.receive_money')
 def use_voucher(request, bill_id):
     bill = Bill.objects.get(pk=bill_id)
     if request.method == 'POST':
@@ -199,26 +216,35 @@ def use_voucher(request, bill_id):
             bill.save()
         return HttpResponseRedirect(reverse('reception:pay', args=[bill_id]))
     form = UseVoucherForm(customer=bill.customer_id)
-    return render(request, 'reception/use-voucher.html', {'form': form, 'bill_id': bill_id})
+    return render(request, 'reception/use-voucher.html', {'form': form, 'bill': bill})
 
 
+@login_required
 def use_meituan(request, bill_id):
     bill = Bill.objects.get(pk=bill_id)
     if request.method == 'POST':
         form = UseMeituanForm(request.POST)
         if form.is_valid():
             v = form.save(commit=False)
-            v.used = True
-            if bill.customer:
-                v.customer = bill.customer
-            v.save()
-            bill.voucher = v
-            bill.save()
-        return HttpResponseRedirect(reverse('reception:pay', args=['bill_id']))
+        else:
+            try:
+                v = Voucher.objects.get(swift_number=request.POST['swift_number'])
+                if v.used:
+                    return failure(request, bill_id, '已使用过')
+            except ObjectDoesNotExist:
+                return failure(request, bill_id, '未知错误')
+        if bill.customer:
+            v.customer = bill.customer
+        v.save()
+        bill.voucher = v
+        bill.save()
+        return HttpResponseRedirect(reverse('reception:pay', args=[bill_id]))
     form = UseMeituanForm()
-    return render(request, 'reception/use-voucher.html', {'form': form})
+    return render(request, 'reception/use-voucher.html', {'form': form, 'bill': bill})
 
 
+@login_required
+@permission_required('reception.receive_money')
 def use_deposit(request, bill_id):
     bill = Bill.objects.get(pk=bill_id)
     if request.method == 'POST':
@@ -266,12 +292,16 @@ def done(request, bill_id):
             charge = bill.depositcharge
             charge.paid = True
             charge.save()
-            card = bill.customer.card
-            card.deposit += charge.deposit_amount
+            if hasattr(bill.customer, 'card'):
+                card = bill.customer.card
+                card.deposit += charge.deposit_amount
+            else:
+                card = Card(deposit=charge.deposit_amount, customer=bill.customer)
             card.save()
     return render(request, 'reception/done.html', {'bill': bill})
 
 
+@login_required
 def failure(request, bill_id, message):
     return render(request, 'reception/failure.html', {
         'bill_id': bill_id,
@@ -279,6 +309,8 @@ def failure(request, bill_id, message):
     })
 
 
+@login_required
+@permission_required('reception.receive_money')
 def create_card(request, customer_id):
     customer = Customer.objects.get(pk=customer_id)
     if request.method == 'POST':
@@ -294,12 +326,13 @@ def create_card(request, customer_id):
         else:
             return HttpResponseRedirect(reverse('reception:customer_detail'), args=[customer_id])
     form = DepositChargeForm()
-    return render(request, 'reception/failure.html', {
+    return render(request, 'reception/create-card.html', {
         'form': form,
         'customer': customer,
     })
 
 
+@login_required
 def customer_detail(request, customer_id):
     customer = Customer.objects.get(pk=customer_id)
     context = {
@@ -312,6 +345,44 @@ def customer_detail(request, customer_id):
         'past_deposit_charge': DepositCharge.objects.filter(paid=True),
     }
     return render(request, 'reception/customer-detail.html', context)
+
+
+def login(request):
+    if request.method == "GET":
+        form = UserLoginForm()
+        return render(request, "reception/login.html", {'form': form})
+    username = request.POST.get("username")
+    password = request.POST.get("password")
+    user_obj = auth.authenticate(username=username, password=password)
+    if not user_obj:
+        return redirect(reverse('reception:login'))
+    else:
+        print(user_obj.username)
+        auth.login(request, user_obj)
+        return redirect(reverse('reception:dashboard'))
+
+
+@login_required
+def logout(request):
+    ppp = auth.logout(request)
+    return redirect(reverse('reception:dashboard'))
+
+
+def register(request):
+    if request.method == 'GET':
+        return render(request, 'reception/register.html')
+    if request.method == 'POST':
+        name = request.POST.get('username')
+        password = request.POST.get('password')
+        phone = request.POST.get('phone')
+        try:
+            customer = Customer.objects.get(phone=phone)
+        except ObjectDoesNotExist:
+            customer = Customer(phone=phone)
+        user = User.objects.create_user(username=name, password=password)
+        customer.user = user
+        customer.save()
+        return redirect(reverse('reception:login'))
 
 
 def set_schedule(request):

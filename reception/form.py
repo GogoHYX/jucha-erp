@@ -1,5 +1,4 @@
 from django import forms
-from .models import *
 from .utils import *
 from django.core.validators import RegexValidator
 from django.core.exceptions import ValidationError
@@ -40,7 +39,7 @@ class ManualForm(forms.ModelForm):
 class PaymentForm(forms.ModelForm):
     class Meta:
         model = Income
-        exclude = ['bill']
+        exclude = ['bill', 'receiver']
 
 
 class DepositPaymentForm(forms.ModelForm):
@@ -73,19 +72,15 @@ class UseMeituanForm(forms.ModelForm):
         model = Voucher
         exclude = ['used', 'customer']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['type'].queryset = VoucherType.objects.filter(meituan=True)
+
 
 class LoginForm(forms.ModelForm):
     class Meta:
         model = Customer
         fields = ['phone']
-        labels = {
-            'phone': '客户手机号'
-        }
-
-
-class RegForm(forms.ModelForm):
-    class Meta:
-        model = Customer
         labels = {
             'phone': '客户手机号'
         }
@@ -108,3 +103,16 @@ class DepositChargeForm(forms.ModelForm):
     class Meta:
         model = DepositCharge
         exclude = ['bill', 'paid']
+
+
+class UserLoginForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['username', 'password']
+        labels = {
+            'username': '用户名',
+            'password': '密码'
+        }
+        help_texts = {
+            'username': ''
+        }

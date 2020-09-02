@@ -60,6 +60,10 @@
             <button type="button">
                 <a href="{% url 'reception:use_deposit' bill.id %}">会员卡付款</a>
             </button>
+            {% else %}
+            <button type="button">
+                <a href="{% url 'reception:create_card' bill.customer.id %}">开卡</a>
+            </button>
             {% endif %}
             {% if have_voucher %}
             <button type="button">

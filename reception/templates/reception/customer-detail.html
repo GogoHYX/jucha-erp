@@ -9,10 +9,10 @@
 <p>积分：{{ customer.credit }}</p>
 {% if customer.card %}
     <p>储值卡余额：{{ customer.card.deposit }}</p>
-    {% if customer.card.privilege.all as prev%}
+    {% if customer.card.privilege.all %}
     <p>特权</p>
     <ul>
-    {% for p in prev %}
+    {% for p in customer.card.privilege.all %}
         <li>{{ p }}</li>
     {% endfor %}
     </ul>

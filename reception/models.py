@@ -28,7 +28,7 @@ class Maid(models.Model):
     active = models.BooleanField('在职', default=True)
     fulltime = models.BooleanField('全职', default=False)
     price = models.PositiveSmallIntegerField('价格', default=MAID_PRICE)
-    user = models.OneToOneField(User, blank=True, null=True)
+    user = models.OneToOneField(User, blank=True, null=True, on_delete=models.SET_NULL)
 
     def __str__(self):
         return self.cos_name
@@ -49,6 +49,9 @@ class MaidSchedule(models.Model):
         ordering = ['date']
         verbose_name = "女仆排班"
         verbose_name_plural = verbose_name
+        permissions = [
+            ("set_schedule", "可以给女仆排班"),
+        ]
 
 
 class Customer(models.Model):
@@ -61,7 +64,7 @@ class Customer(models.Model):
     GENDER_CHOICE = ((u'M', u'男'), (u'F', u'女'),)
     gender = models.CharField(max_length=2, choices=GENDER_CHOICE, blank=True, null=True)
     credit = models.IntegerField('积分', default=0)
-    user = models.OneToOneField(User, blank=True, null=True)
+    user = models.OneToOneField(User, blank=True, null=True, on_delete=models.SET_NULL)
 
     def __str__(self):
         return self.phone
@@ -78,13 +81,17 @@ class Privilege(models.Model):
 
 class Card(models.Model):
     customer = models.OneToOneField(Customer, on_delete=models.PROTECT)
-    number = models.CharField('会员卡号', max_length=20, unique=True)
+    number = models.CharField('会员卡号', max_length=20, unique=True, blank=True, null=True)
     deposit = models.DecimalField('余额', max_digits=8, decimal_places=2)
     privilege = models.ManyToManyField(Privilege, blank=True)
 
     class Meta:
         verbose_name = '储值卡'
         verbose_name_plural = verbose_name
+        permissions = [
+            ("add_reservation", "Can add a new reservation"),
+            ("close_reservation", "Can close a reservation"),
+        ]
 
 
 class Place(models.Model):
@@ -132,6 +139,10 @@ class Reserve(models.Model):
     class Meta:
         verbose_name = "预约"
         verbose_name_plural = verbose_name
+        permissions = [
+            ("add_reservation", "Can add a new reservation"),
+            ("close_reservation", "Can close a reservation"),
+        ]
 
 
 class Serves(models.Model):
@@ -160,6 +171,11 @@ class Serves(models.Model):
     class Meta:
         verbose_name = "服务"
         verbose_name_plural = verbose_name
+        permissions = [
+            ("check_in_serves", "Can start a serves"),
+            ("change_serves_status", "Can change the status of a serves"),
+            ('check_out_serves', "Can check out serves")
+        ]
 
 
 class ServesItems(models.Model):
@@ -255,6 +271,7 @@ class VoucherType(models.Model):
     name = models.CharField('名称', max_length=100, unique=True)
     note = models.CharField('使用条件', max_length=200)
     revenue = models.DecimalField('实际收入', decimal_places=2, max_digits=8)
+    meituan = models.BooleanField('美团/大众', default=False)
     amount = models.PositiveSmallIntegerField('抵扣金额')
 
     def __str__(self):
@@ -269,14 +286,12 @@ class Voucher(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, blank=True, null=True)
     type = models.ForeignKey(VoucherType, on_delete=models.PROTECT)
     used = models.BooleanField('已使用', default=False)
-    meituan = models.BooleanField('美团/大众', default=False)
-    swift_number = models.CharField('流水号', max_length=100, blank=True, null=True)
+    swift_number = models.CharField('流水号', max_length=100, blank=True, null=True, unique=True)
 
     def __str__(self):
         return str(self.type)
 
     class Meta:
-        unique_together = ('meituan', 'swift_number')
         verbose_name = "代金券"
         verbose_name_plural = verbose_name
 
@@ -289,6 +304,9 @@ class Bill(models.Model):
     class Meta:
         verbose_name = "账单"
         verbose_name_plural = verbose_name
+        permissions = [
+            ("receive_money", "收钱"),
+        ]
 
     def valid_income(self):
         if hasattr(self, 'depositcharge'):
@@ -328,7 +346,7 @@ class Income(models.Model):
     swift_number = models.CharField('流水号', max_length=100, blank=True, null=True,
                                     validators=[RegexValidator(regex='^[0-9]+$',
                                                                message='请输入正确流水号', code='nomatch')])
-    receiver = models.CharField('核账人', max_length=100, blank=True, null=True)
+    receiver = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     bill = models.ForeignKey(Bill, on_delete=models.PROTECT)
 
     def save(self, *args, **kwargs):
