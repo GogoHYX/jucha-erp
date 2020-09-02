@@ -86,7 +86,9 @@ class LoginForm(forms.ModelForm):
 class RegForm(forms.ModelForm):
     class Meta:
         model = Customer
-        exclude = ['credit']
+        labels = {
+            'phone': '客户手机号'
+        }
 
 
 class AddItemForm(forms.ModelForm):
@@ -100,3 +102,9 @@ class AddItemForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['item'].queryset = Menu.objects.filter(active=True)
+
+
+class DepositChargeForm(forms.ModelForm):
+    class Meta:
+        model = DepositCharge
+        exclude = ['bill', 'paid']

@@ -16,11 +16,12 @@ from .utils import *
 
 
 def dashboard(request):
-    template = loader.get_template('reception/dashboard.html')
     context = {
-
+        'serves_list': Serves.objects.filter(active=True),
+        'available_maids': available_maids(),
+        'available_places': available_places(),
     }
-    return HttpResponse(template.render(context, request))
+    return render(request, 'reception/dashboard.html', context)
 
 
 def check_in(request):
@@ -35,11 +36,13 @@ def check_in(request):
     return render(request, 'reception/check-in.html', {'form': form})
 
 
-def ongoing_serves(request):
+def ongoing(request):
     context = {
-        'serves_list': Serves.objects.filter(active=True)
+        'serves_list': Serves.objects.filter(active=True),
+        'ongoing_serves_charge': ServesCharge.objects.filter(paid=False),
+        'ongoing_deposit_charge': DepositCharge.objects.filter(paid=False),
     }
-    return render(request, 'reception/ongoing-serves.html', context)
+    return render(request, 'reception/ongoing.html', context)
 
 
 def serves_detail(request, serves_id):
@@ -47,7 +50,7 @@ def serves_detail(request, serves_id):
         return HttpResponseRedirect(reverse('serves_detail', args=[serves_id]))
     context = expense_detail(serves_id)
     print(context)
-    context['serves_id'] = serves_id
+    context['serves'] = Serves.objects.get(pk=serves_id)
     return render(request, 'reception/serves-detail.html', context)
 
 
@@ -135,17 +138,19 @@ def pay(request, bill_id):
         if bill.customer.voucher_set.filter(used=False):
             have_voucher = True
     manual = 0
-    if bill.servescharge:
+    if hasattr(bill, 'servescharge'):
         is_serves = True
         charge = bill.servescharge
         unpaid = charge.unpaid_amount()
         manual = charge.manual
         back_id = charge.serves.id
-    else:
+    elif hasattr(bill, 'depositcharge'):
         is_serves = False
         charge = bill.depositcharge
         unpaid = charge.unpaid_amount()
         back_id = bill.customer_id
+    else:
+        raise Exception
     incomes = bill.income_set.all()
     paid = charge.total - unpaid
     cleared = unpaid <= 0
@@ -243,17 +248,28 @@ def use_deposit(request, bill_id):
 
 def done(request, bill_id):
     bill = Bill.objects.get(pk=bill_id)
-    bill.voucher.used = True
-    bill.voucher.save()
+    if bill.voucher:
+        bill.voucher.used = True
+        bill.voucher.save()
     if bill.customer:
         i = bill.valid_income()
         bill.customer.credit += i
         bill.customer.save()
-        if bill.customer.card:
+        if hasattr(bill, 'servescharge'):
+            bill.servescharge.paid = True
+            bill.servescharge.save()
+            if bill.customer.card:
+                card = bill.customer.card
+                card.deposit += Decimal.from_float(float(i) * CASH_BACK_PERCENTAGE)
+                card.save()
+        else:
+            charge = bill.depositcharge
+            charge.paid = True
+            charge.save()
             card = bill.customer.card
-            card.deposit += Decimal.from_float(float(i) * CASH_BACK_PERCENTAGE)
+            card.deposit += charge.deposit_amount
             card.save()
-    return render(request, 'reception/done.html')
+    return render(request, 'reception/done.html', {'bill': bill})
 
 
 def failure(request, bill_id, message):
@@ -263,3 +279,40 @@ def failure(request, bill_id, message):
     })
 
 
+def create_card(request, customer_id):
+    customer = Customer.objects.get(pk=customer_id)
+    if request.method == 'POST':
+        card_form = DepositChargeForm(request.POST)
+        if card_form.is_valid():
+            dc = card_form.save(commit=False)
+            bill = Bill()
+            bill.customer = customer
+            bill.save()
+            dc.bill = bill
+            dc.save()
+            return HttpResponseRedirect(reverse('reception:pay', args=[bill.id]))
+        else:
+            return HttpResponseRedirect(reverse('reception:customer_detail'), args=[customer_id])
+    form = DepositChargeForm()
+    return render(request, 'reception/failure.html', {
+        'form': form,
+        'customer': customer,
+    })
+
+
+def customer_detail(request, customer_id):
+    customer = Customer.objects.get(pk=customer_id)
+    context = {
+        'customer': customer,
+        'ongoing_serves': Serves.objects.filter(active=True, servescharge__bill__customer=customer),
+        'past_serves': Serves.objects.filter(active=False, servescharge__bill__customer=customer),
+        'ongoing_serves_charge': ServesCharge.objects.filter(paid=False),
+        'past_serves_charge': ServesCharge.objects.filter(paid=True),
+        'ongoing_deposit_charge': DepositCharge.objects.filter(paid=False),
+        'past_deposit_charge': DepositCharge.objects.filter(paid=True),
+    }
+    return render(request, 'reception/customer-detail.html', context)
+
+
+def set_schedule(request):
+    pass

@@ -6,8 +6,9 @@ app_name = 'reception'
 
 urlpatterns = [
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('set-schedule/', views.set_schedule, name='set_schedule'),
     path('check-in/', views.check_in, name='check_in'),
-    path('ongoing-serves/', views.ongoing_serves, name='ongoing_serves'),
+    path('ongoing-serves/', views.ongoing, name='ongoing_serves'),
     path('serves/<int:serves_id>/', views.serves_detail, name='serves_detail'),
     path('serves/<int:serves_id>/change/', views.serves_change, name='change_status'),
     path('serves/<int:serves_id>/add-item/', views.add_item, name='add_item'),
@@ -18,4 +19,6 @@ urlpatterns = [
     path('use-voucher/<int:bill_id>/', views.use_voucher, name='use_voucher'),
     path('use-meituan/<int:bill_id>/', views.use_meituan, name='use_meituan'),
     path('done/<int:bill_id>/', views.done, name='done'),
+    path('create-card/<int:customer_id>', views.create_card, name='create_card'),
+    path('customer/<int:customer_id>', views.customer_detail, name='customer_detail'),
 ]

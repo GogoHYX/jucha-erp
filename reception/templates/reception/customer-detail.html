@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>客户信息</title>
+</head>
+<body>
+<p>手机号：{{ customer.phone }}</p>
+<p>积分：{{ customer.credit }}</p>
+{% if customer.card %}
+    <p>储值卡余额：{{ customer.card.deposit }}</p>
+    {% if customer.card.privilege.all as prev%}
+    <p>特权</p>
+    <ul>
+    {% for p in prev %}
+        <li>{{ p }}</li>
+    {% endfor %}
+    </ul>
+    {% endif %}
+{% endif %}
+<h3>进行中</h3>
+{% if ongoing_serves %}
+    <h4>服务</h4>
+    {% for s in ongoing_serves %}
+    <a href="{% url 'reception:serves_detail' s.id %}"></a>
+    {% endfor %}
+{% endif %}
+{% if ongoing_serves_charge %}
+    <h4>未完成付款</h4>
+    {% for s in ongoing_serves_charge %}
+    <a href="{% url 'reception:pay' s.bill_id %}"></a>
+    {% endfor %}
+{% endif %}
+{% if ongoing_deposit_charge %}
+    <h4>未完成付款</h4>
+    {% for s in ongoing_deposit_charge %}
+    <a href="{% url 'reception:pay' s.bill_id %}"></a>
+    {% endfor %}
+{% endif %}
+<h3>历史记录</h3>
+{% if past_serves %}
+    <h4>服务记录</h4>
+    {% for s in past_serves %}
+    <a href="{% url 'reception:serves_detail' s.id %}"></a>
+    {% endfor %}
+{% endif %}
+{% if past_serves_charge %}
+    <h4>付款记录</h4>
+    {% for s in past_serves_charge %}
+    <p>{{ s }}</p>
+    {% endfor %}
+{% endif %}
+{% if past_deposit_charge %}
+    <h4>充值记录</h4>
+    {% for s in past_deposit_charge %}
+    <p>{{ s }}</p>
+    {% endfor %}
+{% endif %}
+</body>
+</html>

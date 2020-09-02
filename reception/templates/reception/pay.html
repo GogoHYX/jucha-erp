@@ -25,7 +25,7 @@
         {% if incomes %}
             {% for i in incomes %}
             <tr>
-                <td>{{ i.method }}</td>
+                <td>{{ i.get_method_display }}</td>
                 <td>{{ i.amount }}</td>
             </tr>
             {% endfor %}
@@ -71,7 +71,7 @@
         </button>
     {% else %}
         <button type="button">
-        <a href="{% url 'reception:dashboard'%}">返回</a>
+        <a href="{% url 'reception:customer_detail' back_id%}">返回</a>
         </button>
     {% endif %}
     {% if cleared %}

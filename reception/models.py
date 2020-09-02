@@ -2,6 +2,9 @@ from django.db import models
 from django.utils.timezone import now, get_current_timezone
 from django.core.validators import RegexValidator
 from django.core.exceptions import ObjectDoesNotExist
+from django.contrib import auth
+from django.contrib.auth.models import User
+
 
 MAID_PRICE = 90
 CASH_BACK_PERCENTAGE = 0.1
@@ -25,6 +28,7 @@ class Maid(models.Model):
     active = models.BooleanField('在职', default=True)
     fulltime = models.BooleanField('全职', default=False)
     price = models.PositiveSmallIntegerField('价格', default=MAID_PRICE)
+    user = models.OneToOneField(User, blank=True, null=True)
 
     def __str__(self):
         return self.cos_name
@@ -57,6 +61,7 @@ class Customer(models.Model):
     GENDER_CHOICE = ((u'M', u'男'), (u'F', u'女'),)
     gender = models.CharField(max_length=2, choices=GENDER_CHOICE, blank=True, null=True)
     credit = models.IntegerField('积分', default=0)
+    user = models.OneToOneField(User, blank=True, null=True)
 
     def __str__(self):
         return self.phone
@@ -138,10 +143,10 @@ class Serves(models.Model):
     active = models.BooleanField('进行中', default=True)
 
     def __str__(self):
-        maids = self.servesmaids_set.all()
+        maids = self.maid.all().distinct()
         place = self.servesplaces_set.order_by('-end')[0]
         return '开始时间：' + show_time(self.start) + '\n女仆： ' + \
-               ' '.join([str(m.maid) for m in maids]) + '\n场地：' + str(place.place)
+               ' '.join([str(m) for m in maids]) + '\n场地：' + str(place.place)
 
     def end_serves(self):
         self.active = False
@@ -340,7 +345,7 @@ class Income(models.Model):
 
 
 class Charge(models.Model):
-    total = models.DecimalField('总额', max_digits=8, decimal_places=2)
+    total = models.DecimalField('收费', max_digits=8, decimal_places=2)
     note = models.CharField('备注', max_length=200, blank=True)
     bill = models.OneToOneField(Bill, on_delete=models.PROTECT)
     paid = models.BooleanField('已支付', default=False)

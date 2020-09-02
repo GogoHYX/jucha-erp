@@ -74,14 +74,23 @@
         </tbody>
     </table>
 {% endif %}
+{% if serves.active %}
 <button type="button">
-    <a href="{% url 'reception:change_status' serves_id %}">改变女仆/场地状态</a>
+    <a href="{% url 'reception:change_status' serves.id %}">改变女仆/场地状态</a>
 </button>
 <button type="button">
-    <a href="{% url 'reception:add_item' serves_id %}">增加项目</a>
+    <a href="{% url 'reception:add_item' serves.id %}">增加项目</a>
 </button>
 <button type="button">
-    <a href="{% url 'reception:check_out' serves_id %}">check out</a>
+    <a href="{% url 'reception:check_out' serves.id %}">check out</a>
+</button>
+{% elif serves.servescharge.bill.customer %}
+<button type="button">
+    <a href="{% url 'reception:customer_detail' serves.servescharge.bill.customer_id %}">返回</a>
+</button>
+{% endif %}
+<button type="button">
+    <a href="{% url 'reception:dashboard' %}">返回主页</a>
 </button>
 </body>
 </html>

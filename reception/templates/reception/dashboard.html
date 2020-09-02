@@ -5,6 +5,35 @@
     <title>仪表盘</title>
 </head>
 <body>
-<a href="{% url 'reception:ongoing_serves' %}"></a>
+<button type="button"><a href="{% url 'reception:ongoing' %}">进行中</a></button>
+<button type="button"><a href="{% url 'reception:check_in' %}">check in</a></button>
+<button type="button"><a href="{% url 'reception:set_schedule' %}"></a></button>
+{% if serves_list %}
+    <ul>
+    {% for serves in serves_list %}
+        <li><p>{{ serves }}</p></li>
+    {% endfor %}
+    </ul>
+{% endif %}
+<h3>空闲女仆</h3>
+{% if available_maids %}
+    <ul>
+    {% for m in available_maids %}
+        <li>a</li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>无空闲女仆</p>
+{% endif %}
+<h3>空闲场地</h3>
+{% if available_places %}
+    <ul>
+    {% for p in available_places %}
+        <li>p</li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>没有空闲的场地</p>
+{% endif %}
 </body>
 </html>
