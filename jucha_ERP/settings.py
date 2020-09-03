@@ -25,7 +25,7 @@ SECRET_KEY = 'p#2bmij7d-*u&cvsh9)vnqu4ba9a((#u*cd)89#pax0*(*rz2+'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['115.159.27.18', '127.0.0.1', 'www.juchamaid.cn']
 
 LOGIN_URL = '/reception/login/'
 # Application definition
@@ -123,4 +123,5 @@ USE_TZ = False
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
 STATIC_URL = '/static/'
-
+STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
