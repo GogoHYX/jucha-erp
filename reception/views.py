@@ -68,7 +68,7 @@ def serves_change(request, serves_id):
         print(data)
         data['time'] = timezone.now()
         data['serves_id'] = serves_id
-        change_status(data)
+        success = change_status(data)
         return HttpResponseRedirect(reverse('reception:serves_detail', args=[serves_id]))
     form = ServesChange(serves_id=serves_id)
     context = {
@@ -109,7 +109,13 @@ def check_out(request, serves_id):
         context = expense_detail(serves_id)
         bill = Bill()
         if mf.cleaned_data['customer']:
-            bill.customer = Customer.objects.get(phone=mf.cleaned_data['customer'])
+            try:
+                bill.customer = Customer.objects.get(phone=mf.cleaned_data['customer'])
+            except ObjectDoesNotExist:
+                customer = Customer(phone=mf.cleaned_data['customer'])
+                customer.save()
+                new_customer(customer)
+                bill.customer = customer
         bill.save()
         charge = mf.save(commit=False)
         charge.total = context['total']
@@ -143,6 +149,7 @@ def pay(request, bill_id):
                 return failure(request, bill_id, '手机号不正确')
         else:
             customer = form.save()
+            new_customer(customer)
         bill.customer = customer
         bill.save()
     if bill.customer:
@@ -196,7 +203,7 @@ def add_payment(request, bill_id):
         income.save()
         return HttpResponseRedirect(reverse('reception:pay', args=[bill_id]))
     bill = Bill.objects.get(pk=bill_id)
-    form = PaymentForm()
+    form = PaymentForm(unpaid=request.GET.get('unpaid'))
     context = {
         'bill': bill,
         'form': form,
@@ -248,7 +255,7 @@ def use_meituan(request, bill_id):
 def use_deposit(request, bill_id):
     bill = Bill.objects.get(pk=bill_id)
     if request.method == 'POST':
-        dp = DepositPaymentForm(data=request.POST, bill_id = bill_id)
+        dp = DepositPaymentForm(data=request.POST, bill_id=bill_id)
         if not dp.is_valid():
             return failure(request, bill_id, '请输入正确数额')
         if dp.cleaned_data['amount'] > bill.customer.card.deposit:
@@ -324,7 +331,7 @@ def create_card(request, customer_id):
             dc.save()
             return HttpResponseRedirect(reverse('reception:pay', args=[bill.id]))
         else:
-            return HttpResponseRedirect(reverse('reception:customer_detail'), args=[customer_id])
+            return HttpResponseRedirect(reverse('reception:create_card'), args=[customer_id])
     form = DepositChargeForm()
     return render(request, 'reception/create-card.html', {
         'form': form,
@@ -333,17 +340,35 @@ def create_card(request, customer_id):
 
 
 @login_required
-def customer_detail(request, customer_id):
-    customer = Customer.objects.get(pk=customer_id)
+def customer_detail(request):
+    customer = None
+    if request.method == 'POST':
+        form = LoginForm(request.POST)
+        if not form.is_valid():
+            try:
+                customer = Customer.objects.get(phone=form.data['phone'])
+            except ObjectDoesNotExist:
+                return redirect(reverse('reception:dashboard'))
+        else:
+            customer = form.save()
+            new_customer(customer)
+    if request.method == 'GET' and request.GET.get('cid') is not None:
+        try:
+            customer = Customer.objects.get(pk=request.GET.get('cid'))
+        except ObjectDoesNotExist:
+            return redirect(reverse('reception:dashboard'))
+    form = LoginForm()
     context = {
+        'form': form,
         'customer': customer,
         'ongoing_serves': Serves.objects.filter(active=True, servescharge__bill__customer=customer),
         'past_serves': Serves.objects.filter(active=False, servescharge__bill__customer=customer),
-        'ongoing_serves_charge': ServesCharge.objects.filter(paid=False),
-        'past_serves_charge': ServesCharge.objects.filter(paid=True),
-        'ongoing_deposit_charge': DepositCharge.objects.filter(paid=False),
-        'past_deposit_charge': DepositCharge.objects.filter(paid=True),
+        'ongoing_serves_charge': ServesCharge.objects.filter(paid=False, bill__customer=customer),
+        'past_serves_charge': ServesCharge.objects.filter(paid=True, bill__customer=customer),
+        'ongoing_deposit_charge': DepositCharge.objects.filter(paid=False, bill__customer=customer),
+        'past_deposit_charge': DepositCharge.objects.filter(paid=True, bill__customer=customer),
     }
+    print(context)
     return render(request, 'reception/customer-detail.html', context)
 
 
@@ -364,7 +389,7 @@ def login(request):
 
 @login_required
 def logout(request):
-    ppp = auth.logout(request)
+    auth.logout(request)
     return redirect(reverse('reception:dashboard'))
 
 

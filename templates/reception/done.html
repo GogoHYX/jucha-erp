@@ -16,7 +16,7 @@
         if (x>=0){
             document.getElementById("sp").innerText=x;
         }else {
-            location.href="{% if bill.servescharge %}{% url 'reception:dashboard' %}{% else %}{% url 'reception:customer_detail' bill.customer_id%}{% endif %}";
+            location.href="{% if bill.servescharge %}{% url 'reception:dashboard' %}{% else %}{% url 'reception:customer_detail'%}?cid={{ bill.customer_id }}{% endif %}";
         }
         x--;
     }

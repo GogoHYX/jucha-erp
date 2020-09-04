@@ -22,5 +22,5 @@ urlpatterns = [
     path('use-meituan/<int:bill_id>/', views.use_meituan, name='use_meituan'),
     path('done/<int:bill_id>/', views.done, name='done'),
     path('create-card/<int:customer_id>', views.create_card, name='create_card'),
-    path('customer/<int:customer_id>', views.customer_detail, name='customer_detail'),
+    path('customer/', views.customer_detail, name='customer_detail'),
 ]

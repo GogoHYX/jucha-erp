@@ -12,7 +12,7 @@
 {% endif %}
 <button type="button"><a href="{% url 'reception:ongoing' %}">进行中</a></button>
 <button type="button"><a href="{% url 'reception:check_in' %}">check in</a></button>
-<button type="button"><a href="{% url 'reception:set_schedule' %}"></a></button>
+<button type="button"><a href="{% url 'reception:customer_detail' %}">开卡</a></button>
 {% if serves_list %}
     <ul>
     {% for serves in serves_list %}

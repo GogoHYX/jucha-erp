@@ -363,7 +363,7 @@ class Income(models.Model):
 
 
 class Charge(models.Model):
-    total = models.DecimalField('收费', max_digits=8, decimal_places=2)
+    total = models.DecimalField('收款', max_digits=8, decimal_places=2)
     note = models.CharField('备注', max_length=200, blank=True)
     bill = models.OneToOneField(Bill, on_delete=models.PROTECT)
     paid = models.BooleanField('已支付', default=False)

@@ -60,7 +60,7 @@
             <button type="button">
                 <a href="{% url 'reception:use_deposit' bill.id %}">会员卡付款</a>
             </button>
-            {% else %}
+            {% elif bill.customer %}
             <button type="button">
                 <a href="{% url 'reception:create_card' bill.customer.id %}">开卡</a>
             </button>
@@ -75,14 +75,14 @@
         </button>
     {% else %}
         <button type="button">
-        <a href="{% url 'reception:customer_detail' back_id%}">返回</a>
+        <a href="{% url 'reception:customer_detail'%}?cid={{ back_id }}">返回</a>
         </button>
     {% endif %}
     {% if cleared %}
     <a href="{% url 'reception:done' bill.id%}">完成</a>
     {% else %}
     <button type="button">
-    <a href="{% url 'reception:add_payment' bill.id %}">添加入账</a>
+    <a href="{% url 'reception:add_payment' bill.id %}?unpaid={{ unpaid }}">添加入账</a>
     </button>
     {% endif %}
 </body>

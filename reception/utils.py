@@ -2,6 +2,7 @@ from .models import *
 from django.utils import timezone
 
 HALF_HOUR_THRESHOLD_IN_SECONDS = 600
+DEFAULT_VOUCHER = [(1, 0), (2, 0)]
 
 
 def ongoing_serves():
@@ -36,6 +37,9 @@ def change_status(data):
     time = data['time']
     serves = Serves.objects.get(id=data['serves_id'])
     if data['maids_out']:
+        if len(data['maids_out']) >= len(serves.servesmaids_set.filter(active=True)):
+            return False
+
         for sm in data['maids_out']:
             sm.end = time
             sm.deactivate()
@@ -53,6 +57,8 @@ def change_status(data):
         pid = data['place']
         serves_place = ServesPlaces(serves=serves, place_id=pid, start=time, end=time)
         serves_place.activate()
+
+    return True
 
 
 def add_item(data):
@@ -164,8 +170,17 @@ def use_voucher(data):
             bill.voucher.swift_number = data['voucher_swift_number']
 
 
-def cash_back_and_credit(data):
-    pass
+def new_customer(customer):
+    for tid, quantity in DEFAULT_VOUCHER:
+        grant_voucher(customer.id, tid, quantity)
+
+
+def grant_voucher(cid, tid, quantity):
+    for _ in range(quantity):
+        v = Voucher(type_id=tid, customer_id=cid)
+        v.save()
+
+
 
 
 

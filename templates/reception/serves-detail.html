@@ -86,7 +86,7 @@
 </button>
 {% elif serves.servescharge.bill.customer %}
 <button type="button">
-    <a href="{% url 'reception:customer_detail' serves.servescharge.bill.customer_id %}">返回</a>
+    <a href="{% url 'reception:customer_detail'%}?cid={{ serves.servescharge.bill.customer_id }}">返回</a>
 </button>
 {% endif %}
 <button type="button">

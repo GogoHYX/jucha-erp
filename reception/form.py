@@ -23,7 +23,7 @@ class ServesChange(forms.Form):
         serves_id = kwargs.pop('serves_id', ())
         super().__init__(*args, **kwargs)
         serves = Serves.objects.get(pk=serves_id)
-        self.fields['maids_out'].queryset = serves.servesmaids_set.all()
+        self.fields['maids_out'].queryset = serves.servesmaids_set.filter(active=True)
 
 
 class ManualForm(forms.ModelForm):
@@ -37,9 +37,15 @@ class ManualForm(forms.ModelForm):
 
 
 class PaymentForm(forms.ModelForm):
+
     class Meta:
         model = Income
         exclude = ['bill', 'receiver']
+
+    def __init__(self, *args, **kwargs):
+        unpaid = kwargs.pop('unpaid', 0)
+        super().__init__(*args, **kwargs)
+        self.fields['amount'].initial = unpaid
 
 
 class DepositPaymentForm(forms.ModelForm):
