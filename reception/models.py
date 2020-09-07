@@ -78,12 +78,19 @@ class Privilege(models.Model):
     name = models.CharField('名称', max_length=40, unique=True)
     note = models.CharField('备注', max_length=200)
 
+    def __str__(self):
+        return self.name
+
 
 class Card(models.Model):
     customer = models.OneToOneField(Customer, on_delete=models.PROTECT)
     number = models.CharField('会员卡号', max_length=20, unique=True, blank=True, null=True)
     deposit = models.DecimalField('余额', max_digits=8, decimal_places=2)
     privilege = models.ManyToManyField(Privilege, blank=True)
+
+    def __str__(self):
+        return '客户: ' + self.customer.phone + ' 余额：' + str(self.deposit)
+
 
     class Meta:
         verbose_name = '储值卡'
@@ -301,6 +308,9 @@ class Bill(models.Model):
     voucher = models.OneToOneField(Voucher, on_delete=models.PROTECT, blank=True, null=True)
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT, blank=True, null=True)
 
+    def __str__(self):
+        return '入账：' + self.total
+
     class Meta:
         verbose_name = "账单"
         verbose_name_plural = verbose_name
@@ -332,6 +342,9 @@ class DepositPayment(models.Model):
     amount = models.DecimalField('会员卡扣款', decimal_places=2, max_digits=8, default=0)
     card = models.ForeignKey(Card, on_delete=models.PROTECT)
     bill = models.OneToOneField(Bill, on_delete=models.PROTECT)
+
+    def __str__(self):
+        return '会员卡扣款： ' + str(self.amount)
 
     class Meta:
         verbose_name = '会员卡支付'
@@ -367,6 +380,9 @@ class Charge(models.Model):
     note = models.CharField('备注', max_length=200, blank=True)
     bill = models.OneToOneField(Bill, on_delete=models.PROTECT)
     paid = models.BooleanField('已支付', default=False)
+
+    def __str__(self):
+        return '账单： ' + self.total
 
     class Meta:
         abstract = True
