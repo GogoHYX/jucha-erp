@@ -15,10 +15,10 @@ class Maid(models.Model):
     identity = models.CharField('身份证号', max_length=18,
                                 validators=[RegexValidator(regex='^[0-9]{17}[0-9X]$',
                                                            message='请输入正确的身份证号，包含数字和大写X', code='nomatch')],
-                                unique=True)
+                                unique=True, blank=True, null=True)
     name = models.CharField('姓名', max_length=5, )
     cos_name = models.CharField('昵称', max_length=5, unique=True)
-    wechat_id = models.CharField('微信号', max_length=40, unique=True)
+    wechat_id = models.CharField('微信号', max_length=40, unique=True, blank=True, null=True)
     phone = models.CharField('手机号', max_length=11,
                              validators=[RegexValidator(regex='^[0-9]{11}$',
                                                         message='请输入正确的11位手机号', code='nomatch')],
@@ -136,9 +136,9 @@ class Reserve(models.Model):
     maid_NO = models.PositiveSmallIntegerField('女仆数', default=1)
     maid = models.ManyToManyField(Maid, blank=True)
     place = models.ForeignKey(Place, blank=True, null=True, on_delete=models.PROTECT)
-    active = models.BooleanField('有效', default=True)
+    active = models.BooleanField('赴约', default=False)
     THROUGH_CHOICE = (('MP', '小程序'), ('WC', '微信'), ('PH', '电话'), ('MA', '女仆'))
-    advanced_payment = models.SmallIntegerField('定金')
+    advanced_payment = models.SmallIntegerField('定金', default=0)
     through = models.CharField('途径', choices=THROUGH_CHOICE, max_length=2)
 
     def __str__(self):
