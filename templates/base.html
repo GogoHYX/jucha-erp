@@ -6,9 +6,11 @@
     <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.3/build/pure-min.css"
           integrity="sha384-cg6SkqEOCV1NbJoCu11+bm0NvBRc8IYLRGXkmNrqUBfTjmMYwNKPWBTIKyw9mHNJ"
           crossorigin="anonymous">
+    <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.3/build/grids-responsive-min.css">
     {% load static %}
+    <link rel="shortcut icon" href="{%  static 'img/favicon.jpg' %}">
     <script src="{% static 'js/jquery-3.5.1.min.js' %}"></script>
-    <title>{% block title %}{% endblock %}</title>
+    {% block header %}{% endblock %}
 </head>
 <body>
     <div class="container">

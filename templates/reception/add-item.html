@@ -1,17 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
+{% extends 'base.html' %}
+{% block header %}
     <title>添加项目</title>
-</head>
-<body>
-    <form action="" method="POST">
+{% endblock %}
+{% block content %}
+    <form class="pure-form" action="" method="POST">
         {% csrf_token %}
         {{ form }}
-        <input type="submit" value="确认">
+        <input class="pure-button" type="submit" value="确认">
+        <button type="button" id="back" class="pure-button">返回</button>
     </form>
-    <button type="button">
-        <a href="{% url 'reception:serves_detail' serves_id %}">返回</a>
-    </button>
-</body>
-</html>
+
+    <script>
+        $('#back').on('click',function(){
+        window.location.href="{% url 'reception:serves_detail' serves_id %}";
+        })
+    </script>
+{% endblock %}

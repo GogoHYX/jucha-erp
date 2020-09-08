@@ -1,10 +1,7 @@
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
-from django.contrib import auth
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.decorators import permission_required
-# Create your views here.
-from django.template import loader
 from django.urls import reverse
 from decimal import Decimal
 
@@ -30,8 +27,6 @@ def check_in(request):
     if request.method == 'POST':
         form = CheckInForm(data=request.POST)
         if form.is_valid():
-            print(form.cleaned_data['maids'])
-            print(form.cleaned_data['place'])
             start_serves(form.cleaned_data)
             return HttpResponseRedirect(reverse('reception:dashboard'))
     form = CheckInForm()
@@ -53,7 +48,6 @@ def serves_detail(request, serves_id):
     if request.method == 'POST':
         return HttpResponseRedirect(reverse('serves_detail', args=[serves_id]))
     context = expense_detail(serves_id)
-    print(context)
     context['serves'] = Serves.objects.get(pk=serves_id)
     return render(request, 'reception/serves-detail.html', context)
 
@@ -63,13 +57,14 @@ def serves_detail(request, serves_id):
 def serves_change(request, serves_id):
     if request.method == 'POST':
         sc = ServesChange(serves_id=serves_id, data=request.POST)
-        print(sc.is_valid())
-        data = sc.cleaned_data
-        print(data)
-        data['time'] = timezone.now()
-        data['serves_id'] = serves_id
-        success = change_status(data)
-        return HttpResponseRedirect(reverse('reception:serves_detail', args=[serves_id]))
+        if sc.is_valid():
+            data = sc.cleaned_data
+            data['time'] = timezone.now()
+            data['serves_id'] = serves_id
+            success = change_status(data)
+            return HttpResponseRedirect(reverse('reception:serves_detail', args=[serves_id]))
+        else:
+            return redirect(dashboard)
     form = ServesChange(serves_id=serves_id)
     context = {
         'serves_id': serves_id,
@@ -127,7 +122,6 @@ def check_out(request, serves_id):
 
     context = expense_detail(serves_id, update=False)
     form = ManualForm
-    print(context)
     context['form'] = form
     context['serves_id'] = serves_id
     return render(request, 'reception/check-out.html', context)
@@ -186,7 +180,6 @@ def pay(request, bill_id):
         'logged_in': logged_in,
         'have_voucher': have_voucher,
     }
-    print(context)
     return render(request, 'reception/pay.html', context)
 
 
@@ -368,7 +361,6 @@ def customer_detail(request):
         'ongoing_deposit_charge': DepositCharge.objects.filter(paid=False, bill__customer=customer),
         'past_deposit_charge': DepositCharge.objects.filter(paid=True, bill__customer=customer),
     }
-    print(context)
     return render(request, 'reception/customer-detail.html', context)
 
 

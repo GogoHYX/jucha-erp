@@ -104,6 +104,7 @@ class Card(models.Model):
 class Place(models.Model):
     name = models.CharField('名称', max_length=10, unique=True)
     price = models.PositiveSmallIntegerField('每小时价格')
+    lounge = models.BooleanField('在大厅', default=False)
     available = models.BooleanField('空闲', default=True)
 
     def __str__(self):

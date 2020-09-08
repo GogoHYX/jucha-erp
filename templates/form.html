@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block content %}
+    <form class="pure-form" action="" method="POST">
+        {% csrf_token %}
+        {% block form %}{% endblock %}
+        <input class="pure-button" type="submit" value="{% block submit %}{% endblock %}">
+        <button type="button" id="back" class="pure-button">返回</button>
+    </form>
+
+    <script>
+        $('#back').on('click',function(){
+        window.location.href="{% block back_url %}{% endblock %}";
+        })
+    </script>
+{% endblock %}

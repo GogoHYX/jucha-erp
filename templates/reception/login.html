@@ -1,14 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
+{% extends 'base.html' %}
+{% block header %}
     <title>登陆</title>
-</head>
-<body>
-    <form action="" method="POST">
+{% endblock %}
+{% block content %}
+    <form class="pure-form" action="" method="POST">
         {% csrf_token %}
         {{ form.as_p }}
-        <input type="submit" value="登陆">
+        <input class="pure-button" type="submit" value="登陆">
     </form>
-</body>
-</html>
+{% endblock %}

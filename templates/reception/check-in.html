@@ -1,16 +1,18 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
+{% extends 'base.html' %}
+{% block header %}
     <title>Check In</title>
-</head>
-<body>
-    <form action="" method="post">
+{% endblock %}
+{% block content %}
+    <form class="pure-form" action="" method="POST">
         {% csrf_token %}
-        {{ form }}
-        <input type="submit" value="确认">
+        {{ form.as_p }}
+        <input type="submit" class="pure-button" value="确认">
+        <button type="button" id="back" class="pure-button">返回</button>
     </form>
     <br>
-    </form>
-</body>
-</html>
+    <script>
+        $('#back').on('click',function(){
+        window.location.href="{% url 'reception:dashboard' %}";
+        })
+    </script>
+{% endblock %}

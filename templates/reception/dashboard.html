@@ -1,44 +1,94 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <title>仪表盘</title>
-</head>
-<body>
-{% if user.is_anonymous %}
-<button type="button"><a href="{% url 'reception:login' %}">登陆</a></button>
-{% elif user.is_authenticated %}
-<button type="button"><a href="{% url 'reception:logout' %}">登出</a></button>
-{% endif %}
-<button type="button"><a href="{% url 'reception:ongoing' %}">进行中</a></button>
-<button type="button"><a href="{% url 'reception:check_in' %}">check in</a></button>
-<button type="button"><a href="{% url 'reception:customer_detail' %}">开卡</a></button>
-{% if serves_list %}
-    <ul>
-    {% for serves in serves_list %}
-        <li><p>{{ serves }}</p></li>
-    {% endfor %}
+{% extends 'base.html' %}
+{% load static %}
+{% block header %}
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <Title>仪表盘</Title>
+{% endblock %}
+{% block content %}
+    <div class="pure-menu pure-menu-horizontal">
+    <img src="{% static 'img/favicon.jpg' %}" width="80px" class="pure-menu-heading">
+    <ul class="pure-menu-list">
+        {% if user.is_anonymous %}
+        <li class="pure-menu-item"><a href="{% url 'reception:login' %}" class="pure-menu-link">登陆</a></li>
+        {% else %}
+        <li class="pure-menu-item"><a href="{% url 'reception:logout' %}" class="pure-menu-link">登出</a></li>
+        {% endif %}
+        <li class="pure-menu-item"><a href="{% url 'reception:ongoing' %}" class="pure-menu-link {% if not user.is_authenticated %}pure-menu-disabled{% endif %}">进行中</a></li>
+        <li class="pure-menu-item pure-menu-selected"><a href="{% url 'reception:check_in' %}" class="pure-menu-link {% if not user.is_authenticated %}pure-menu-disabled{% endif %}">check in</a></li>
+        <li class="pure-menu-item"><a href="{% url 'reception:customer_detail' %}" class="pure-menu-link {% if not user.is_authenticated %}pure-menu-disabled{% endif %}">开通会员卡</a></li>
+        <li class="pure-menu-item"><a href="#" class="pure-menu-link {% if not user.is_authenticated %}pure-menu-disabled{% endif %}">管理</a></li>
     </ul>
-{% endif %}
-<h3>空闲女仆</h3>
-{% if available_maids %}
-    <ul>
-    {% for m in available_maids %}
-        <li>{{ m }}</li>
-    {% endfor %}
-    </ul>
-{% else %}
-    <p>无空闲女仆</p>
-{% endif %}
-<h3>空闲场地</h3>
-{% if available_places %}
-    <ul>
-    {% for p in available_places %}
-        <li>{{ p }}</li>
-    {% endfor %}
-    </ul>
-{% else %}
-    <p>没有空闲的场地</p>
-{% endif %}
-</body>
-</html>
+</div>
+<br>
+<br>
+<br>
+<div class="l-content">
+    <div class="pricing-tables pure-g">
+        <div class="pure-u-1">
+            <div class="pricing-table pricing-table-free">
+                <div class="pricing-table-header">
+                    <h2>进行中的服务</h2>
+                    <br>
+                    <br>
+                </div>
+                <ul class="pricing-table-list">
+                {% if serves_list %}
+                    {% for serves in serves_list %}
+                        <li><p>{{ serves }}</p></li>
+                    {% endfor %}
+                {% else %}
+                    <li>无正在进行的服务</li>
+                {% endif %}
+                </ul>
+
+                <button class="button-choose pure-button">查看细节</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="pricing-tables pure-g">
+
+        <div class="pure-u-1 pure-u-md-1-2">
+            <div class="pricing-table pricing-table-biz pricing-table-selected">
+                <div class="pricing-table-header">
+                    <h2>空闲女仆</h2>
+                    <br>
+                    <br>
+                </div>
+                <ul class="pricing-table-list">
+                {% if available_maids %}
+                    {% for m in available_maids %}
+                        <li>{{ m }}</li>
+                    {% endfor %}
+                {% else %}
+                    <li>无空闲女仆</li>
+                {% endif %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="pure-u-1 pure-u-md-1-2">
+            <div class="pricing-table pricing-table-enterprise">
+                <div class="pricing-table-header">
+                    <h2>空闲场地</h2>
+                    <br>
+                    <br>
+                </div>
+
+                <ul class="pricing-table-list">
+                {% if available_places %}
+                    {% for p in available_places %}
+                        <li>{{ p }}</li>
+                    {% endfor %}
+                {% else %}
+                    <li>没有空闲的场地</li>
+                {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div> <!-- end pricing-tables -->
+
+    </div> <!-- end information -->
+</div> <!-- end l-content -->
+
+{% endblock %}

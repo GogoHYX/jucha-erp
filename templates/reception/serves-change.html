@@ -1,18 +1,19 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
+{% extends 'base.html' %}
+{% block header %}
     <title>状态变更</title>
-</head>
-<body>
-<form action="" method="POST">
-    {% csrf_token %}
-    {{ form }}
-    <input type="reset" value="重置">
-    <input type="submit" value="变更">
-</form>
-<button type="button">
-    <a href="{% url 'reception:serves_detail' serves_id %}">返回</a>
-</button>
-</body>
-</html>
+{% endblock %}
+{% block content %}
+    <form class="pure-form" action="" method="POST">
+        {% csrf_token %}
+        {{ form }}
+        <input class="pure-button" type="submit" value="确认">
+        <input type="reset" class="pure-button" value="重置">
+        <button type="button" id="back" class="pure-button">返回</button>
+    </form>
+
+    <script>
+        $('#back').on('click',function(){
+        window.location.href="{% url 'reception:serves_detail' serves_id %}";
+        })
+    </script>
+{% endblock %}

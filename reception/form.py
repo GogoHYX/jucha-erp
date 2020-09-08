@@ -122,3 +122,6 @@ class UserLoginForm(forms.ModelForm):
         help_texts = {
             'username': ''
         }
+        type = {
+            'password': 'password'
+        }
