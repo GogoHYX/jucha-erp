@@ -112,16 +112,14 @@ class DepositChargeForm(forms.ModelForm):
 
 
 class UserLoginForm(forms.ModelForm):
+    password = forms.CharField(widget=forms.PasswordInput(), label='密码')
+
     class Meta:
         model = User
         fields = ['username', 'password']
         labels = {
             'username': '用户名',
-            'password': '密码'
         }
         help_texts = {
             'username': ''
-        }
-        type = {
-            'password': 'password'
         }

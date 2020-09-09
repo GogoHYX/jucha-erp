@@ -89,8 +89,7 @@ def expense_detail(serves_id, update=True):
     for m in sm:
         d = {}
         if m.active and update:
-            m.end = time
-            m.save()
+            m.update(t=time)
         hour = valid_hour(m.start, m.end)
         price = m.price
         total = price * hour
@@ -181,7 +180,8 @@ def grant_voucher(cid, tid, quantity):
         v.save()
 
 
-
+def handle_schedule_xls(f):
+    pass
 
 
 

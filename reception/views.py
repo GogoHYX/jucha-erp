@@ -402,5 +402,11 @@ def register(request):
         return redirect(reverse('reception:login'))
 
 
+@login_required
+@permission_required('manage')
+def manage(request):
+    pass
+
+
 def set_schedule(request):
     pass

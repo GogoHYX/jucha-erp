@@ -1,12 +1,14 @@
 from django.db import models
-from django.utils.timezone import now, get_current_timezone
+from django.utils.timezone import now
+import datetime
 from django.core.validators import RegexValidator
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib import auth
 from django.contrib.auth.models import User
 
-
+OVERTIME_THRESHOLD = datetime.time(22, 0)
 MAID_PRICE = 90
+OVERTIME_PRICE = 120
 CASH_BACK_PERCENTAGE = 0.1
 
 
@@ -50,7 +52,7 @@ class MaidSchedule(models.Model):
         verbose_name = "女仆排班"
         verbose_name_plural = verbose_name
         permissions = [
-            ("set_schedule", "可以给女仆排班"),
+            ("manage", "管理"),
         ]
 
 
@@ -90,7 +92,6 @@ class Card(models.Model):
 
     def __str__(self):
         return '客户: ' + self.customer.phone + ' 余额：' + str(self.deposit)
-
 
     class Meta:
         verbose_name = '储值卡'
@@ -207,6 +208,7 @@ class ServesMaids(models.Model):
     price = models.PositiveSmallIntegerField('单价', default=MAID_PRICE)
     start = models.DateTimeField('开始时间', default=now)
     end = models.DateTimeField('结束时间', default=now)
+    overtime = models.BooleanField('加班', default=False)
     active = models.BooleanField('进行中', default=True)
 
     def activate(self):
@@ -221,9 +223,20 @@ class ServesMaids(models.Model):
         self.maid.available = True
         self.maid.save()
 
-    def update(self):
-        self.end = now()
-        self.save()
+    def update(self, t=None):
+        if not t:
+            t = now()
+        date = self.start.date()
+        overtime_thres = datetime.datetime.combine(date=date, time=OVERTIME_THRESHOLD)
+        if t > overtime_thres:
+            self.end = overtime_thres
+            self.deactivate()
+            new_service = ServesMaids(serves=self.serves, maid=self.maid, overtime=True,
+                                      price=OVERTIME_PRICE, start=overtime_thres, end=t)
+            new_service.activate()
+        else:
+            self.end = t
+            self.save()
 
     def save(self, *args, **kwargs):
         self.price = self.maid.price
