@@ -25,7 +25,8 @@ class Maid(models.Model):
                              validators=[RegexValidator(regex='^[0-9]{11}$',
                                                         message='请输入正确的11位手机号', code='nomatch')],
                              unique=True)
-
+    SIZE_CHOICE = (('S', 'S'), ('M', 'M'), ('L', 'L'))
+    size = models.CharField(max_length=2, choices=SIZE_CHOICE, default='M', blank=True, null=True)
     available = models.BooleanField('空闲', default=False)
     active = models.BooleanField('在职', default=True)
     fulltime = models.BooleanField('全职', default=False)
