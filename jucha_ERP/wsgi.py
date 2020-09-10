@@ -23,6 +23,7 @@ site.addsitedir(site_packages)
 # os.environ.setdefault("DJANGO_SETTINGS_MODULE", "travel_record.settings")
 os.environ["DJANGO_SETTINGS_MODULE"] = "jucha_ERP.settings"
 print(sys.path)
+print(sys.version)
 
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
