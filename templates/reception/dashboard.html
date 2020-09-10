@@ -16,7 +16,7 @@
         <li class="pure-menu-item"><a href="{% url 'reception:ongoing' %}" class="pure-menu-link {% if not user.is_authenticated %}pure-menu-disabled{% endif %}">进行中</a></li>
         <li class="pure-menu-item pure-menu-selected"><a href="{% url 'reception:check_in' %}" class="pure-menu-link {% if not user.is_authenticated %}pure-menu-disabled{% endif %}">check in</a></li>
         <li class="pure-menu-item"><a href="{% url 'reception:customer_detail' %}" class="pure-menu-link {% if not user.is_authenticated %}pure-menu-disabled{% endif %}">开通会员卡</a></li>
-        <li class="pure-menu-item"><a href="#" class="pure-menu-link {% if not user.is_authenticated %}pure-menu-disabled{% endif %}">管理</a></li>
+        <li class="pure-menu-item"><a href="{% url 'admin:index' %}" class="pure-menu-link {% if not user.is_authenticated %}pure-menu-disabled{% endif %}">管理</a></li>
     </ul>
 </div>
 <br>
