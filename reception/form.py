@@ -136,3 +136,7 @@ class CreditRedeemForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['item'].queryset = CreditMenu.objects.filter(active=True)
+
+
+class ScheduleExcelForm(forms.Form):
+    file = forms.FileField(label='上传排班表')

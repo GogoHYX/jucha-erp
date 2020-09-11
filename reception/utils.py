@@ -1,6 +1,6 @@
 from .models import *
 from django.utils import timezone
-
+import pandas as pd
 HALF_HOUR_THRESHOLD_IN_SECONDS = 600
 DEFAULT_VOUCHER = [(1, 0), (2, 0)]
 
@@ -180,7 +180,7 @@ def grant_voucher(cid, tid, quantity):
         v.save()
 
 
-def handle_schedule_xls(f):
+def handle_schedule_xlxs(f):
     pass
 
 

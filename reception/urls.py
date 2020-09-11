@@ -24,4 +24,5 @@ urlpatterns = [
     path('create-card/<int:customer_id>/', views.create_card, name='create_card'),
     path('customer/', views.customer_detail, name='customer_detail'),
     path('credit-redeem/<int:customer_id>/', views.credit_redeem, name='credit_redeem'),
+    path('manage/set-schedule', views.set_schedule, name='set_schedule'),
 ]

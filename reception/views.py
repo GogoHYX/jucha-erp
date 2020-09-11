@@ -341,7 +341,7 @@ def customer_detail(request):
             try:
                 customer = Customer.objects.get(phone=form.data['phone'])
             except ObjectDoesNotExist:
-                return redirect(reverse('reception:dashboard'))
+                return redirect(dashboard)
         else:
             customer = form.save()
             new_customer(customer)
@@ -349,7 +349,7 @@ def customer_detail(request):
         try:
             customer = Customer.objects.get(pk=request.GET.get('cid'))
         except ObjectDoesNotExist:
-            return redirect(reverse('reception:dashboard'))
+            return redirect(dashboard)
     form = LoginForm()
     context = {
         'form': form,
@@ -372,17 +372,17 @@ def login(request):
     password = request.POST.get("password")
     user_obj = auth.authenticate(username=username, password=password)
     if not user_obj:
-        return redirect(reverse('reception:login'))
+        return redirect(login)
     else:
         print(user_obj.username)
         auth.login(request, user_obj)
-        return redirect(reverse('reception:dashboard'))
+        return redirect(dashboard)
 
 
 @login_required
 def logout(request):
     auth.logout(request)
-    return redirect(reverse('reception:dashboard'))
+    return redirect(dashboard)
 
 
 def register(request):
@@ -399,7 +399,7 @@ def register(request):
         user = User.objects.create_user(username=name, password=password)
         customer.user = user
         customer.save()
-        return redirect(reverse('reception:login'))
+        return redirect(login)
 
 
 @login_required
@@ -426,6 +426,18 @@ def credit_redeem(request, customer_id):
     }
     return render(request, 'reception/add-item.html', context)
 
-
+@login_required
+@permission_required('manage')
 def set_schedule(request):
+    if request.method == 'POST':
+        form = ScheduleExcelForm(request.POST, request.FILES)
+        if form.is_valid():
+            handle_schedule_xlxs(request.FILES['file'])
+            return redirect(dashboard)
+    else:
+        form = ScheduleExcelForm()
+    return render(request, 'reception/set-schedule.html', {'form': form})
+
+
+def clock_in_out(request):
     pass
