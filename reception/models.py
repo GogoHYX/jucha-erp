@@ -70,7 +70,7 @@ class Customer(models.Model):
     user = models.OneToOneField(User, blank=True, null=True, on_delete=models.SET_NULL)
 
     def __str__(self):
-        return self.phone
+        return self.phone + ' 积分：' + self.credit
 
     class Meta:
         verbose_name = "顾客"
@@ -118,10 +118,24 @@ class Place(models.Model):
         verbose_name_plural = verbose_name
 
 
+class CreditMenu(models.Model):
+    item = models.CharField('项目', max_length=20, unique=True)
+    credit = models.PositiveSmallIntegerField('积分单价单价', default=1000)
+    active = models.BooleanField('仍在提供', default=True)
+
+    def __str__(self):
+        return self.item
+
+    class Meta:
+        ordering = ['item']
+        verbose_name = "积分兑换表"
+        verbose_name_plural = verbose_name
+
+
 class Menu(models.Model):
     item = models.CharField('项目', max_length=20, unique=True)
     price = models.PositiveSmallIntegerField('单价')
-    active = models.BooleanField('仍在提供')
+    active = models.BooleanField('仍在提供', default=True)
 
     def __str__(self):
         return self.item
@@ -427,6 +441,19 @@ class DepositCharge(Charge):
         verbose_name = "充值收款"
         verbose_name_plural = verbose_name
 
+
+class CreditTransaction(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
+    item = models.ForeignKey(CreditMenu, on_delete=models.PROTECT)
+    quantity = models.PositiveSmallIntegerField('数量', default=1)
+    credit = models.PositiveSmallIntegerField('积分单价', default=1000)
+
+    class Meta:
+        verbose_name = "积分交易"
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.customer + self.item
 
 # helper methods
 def show_time(time):

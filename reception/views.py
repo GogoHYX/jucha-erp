@@ -408,5 +408,24 @@ def manage(request):
     pass
 
 
+@login_required
+@permission_required('receive_money')
+def credit_redeem(request, customer_id):
+    if request.method == 'POST':
+        af = CreditRedeemForm(request.POST)
+        if af.is_valid():
+            ct = af.save(commit=False)
+            ct.credit = ct.item.price
+            ct.customer_id = customer_id
+            ct.save()
+            return HttpResponseRedirect(reverse('reception:customer_detail') + '?customer_id=%s' % customer_id)
+    form = CreditRedeemForm
+    context = {
+        'serves_id': customer_id,
+        'form': form,
+    }
+    return render(request, 'reception/add-item.html', context)
+
+
 def set_schedule(request):
     pass

@@ -123,3 +123,16 @@ class UserLoginForm(forms.ModelForm):
         help_texts = {
             'username': ''
         }
+
+
+class CreditRedeemForm(forms.ModelForm):
+    class Meta:
+        model = CreditTransaction
+        exclude = ['customer', 'credit']
+        widgets = {
+            'item': forms.RadioSelect,
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['item'].queryset = CreditMenu.objects.filter(active=True)
