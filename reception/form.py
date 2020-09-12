@@ -11,7 +11,7 @@ class CheckInForm(forms.Form):
 
 
 class ServesChange(forms.Form):
-    time = forms.DateTimeField(label='改动时间')
+    time = forms.DateTimeField(label='改动时间', auto_now=True)
 
     maids_in = forms.ModelMultipleChoiceField(widget=forms.CheckboxSelectMultiple, label='新增女仆',
                                               queryset=available_maids(), required=False)
@@ -24,7 +24,6 @@ class ServesChange(forms.Form):
         super().__init__(*args, **kwargs)
         serves = Serves.objects.get(pk=serves_id)
         self.fields['maids_out'].queryset = serves.servesmaids_set.filter(active=True)
-        self.fields['time'].inital = timezone.now()
 
 
 class ManualForm(forms.ModelForm):

@@ -37,8 +37,6 @@ def change_status(data):
     time = data['time']
     serves = Serves.objects.get(id=data['serves_id'])
     if data['maids_out']:
-        if len(data['maids_out']) >= len(serves.servesmaids_set.filter(active=True)):
-            return False
 
         for sm in data['maids_out']:
             sm.end = time
