@@ -42,7 +42,12 @@
                 {% endif %}
                 </ul>
 
-                <button class="button-choose pure-button">查看细节</button>
+                <button class="button-choose pure-button" id="detail">查看细节</button>
+                <script>
+                    $('#detail').on('click',function(){
+                    window.location.href="{% url 'reception:ongoing' %}";
+                    })
+                </script>
             </div>
         </div>
     </div>
