@@ -59,7 +59,8 @@ def serves_change(request, serves_id):
         sc = ServesChange(serves_id=serves_id, data=request.POST)
         if sc.is_valid():
             data = sc.cleaned_data
-            data['time'] = timezone.now()
+            if data['time'] is None:
+                data['time'] = timezone.now()
             data['serves_id'] = serves_id
             success = change_status(data)
             return HttpResponseRedirect(reverse('reception:serves_detail', args=[serves_id]))
