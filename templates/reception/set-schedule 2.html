@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block header %}
+<title>排班</title>
+{% endblock %}
+{% block content %}
+    <form class="pure-form" action="" method="POST">
+        {% csrf_token %}
+        {{ form }}
+        <input type="submit" class="pure-button" value="确认">
+        <button type="button" id="back" class="pure-button">返回</button>
+    </form>
+    <br>
+    <script>
+        $('#back').on('click',function(){
+        window.location.href="{% url 'reception:dashboard' %}";
+        })
+    </script>
+{% endblock %}

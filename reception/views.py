@@ -63,6 +63,7 @@ def serves_change(request, serves_id):
                 data['time'] = timezone.now()
             data['serves_id'] = serves_id
             success = change_status(data)
+            print(success)
             return HttpResponseRedirect(reverse('reception:serves_detail', args=[serves_id]))
         else:
             return redirect(dashboard)
