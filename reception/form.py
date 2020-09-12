@@ -11,7 +11,7 @@ class CheckInForm(forms.Form):
 
 
 class ServesChange(forms.Form):
-    time = forms.DateTimeField(label='改动时间')
+    time = forms.DateTimeField(label='改动时间', initial=timezone.now)
 
     maids_in = forms.ModelMultipleChoiceField(widget=forms.CheckboxSelectMultiple, label='新增女仆',
                                               queryset=available_maids(), required=False)
