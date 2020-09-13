@@ -277,29 +277,35 @@ def use_deposit(request, bill_id):
 def done(request, bill_id):
     bill = Bill.objects.get(pk=bill_id)
     if bill.voucher:
-        bill.voucher.used = True
-        bill.voucher.save()
+        v = bill.voucher
+        v.used = True
+        v.save()
+    if hasattr(bill, 'servescharge'):
+        print('sc')
+        charge = bill.servescharge
+        charge.paid = True
+        charge.save()
+    else:
+        print('dc')
+        charge = bill.depositcharge
+        charge.paid = True
+        charge.save()
+        if hasattr(bill.customer, 'card'):
+            card = bill.customer.card
+            card.deposit += charge.deposit_amount
+        else:
+            card = Card(deposit=charge.deposit_amount, customer=bill.customer)
+        card.save()
     if bill.customer:
         i = bill.valid_income()
-        bill.customer.credit += i
-        bill.customer.save()
-        if hasattr(bill, 'servescharge'):
-            bill.servescharge.paid = True
-            bill.servescharge.save()
-            if bill.customer.card:
-                card = bill.customer.card
-                card.deposit += Decimal.from_float(float(i) * CASH_BACK_PERCENTAGE)
-                card.save()
-        else:
-            charge = bill.depositcharge
-            charge.paid = True
-            charge.save()
-            if hasattr(bill.customer, 'card'):
-                card = bill.customer.card
-                card.deposit += charge.deposit_amount
-            else:
-                card = Card(deposit=charge.deposit_amount, customer=bill.customer)
+        c = bill.customer
+        c.credit += i
+        c.save()
+        if bill.customer.card:
+            card = bill.customer.card
+            card.deposit += Decimal.from_float(float(i) * CASH_BACK_PERCENTAGE)
             card.save()
+
     return render(request, 'reception/done.html', {'bill': bill})
 
 
