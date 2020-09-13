@@ -411,7 +411,7 @@ class Charge(models.Model):
     paid = models.BooleanField('已支付', default=False)
 
     def __str__(self):
-        return '账单： ' + self.total
+        return '账单： ' + str(self.total)
 
     class Meta:
         abstract = True
