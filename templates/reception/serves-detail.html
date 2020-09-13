@@ -21,8 +21,11 @@
             <tr>
                 <td>{{ d.name }}</td>
                 <td>{{ d.start }}</td>
-                <td>{{ d.end }}</td>
-                <td>{{ d.hour }}</td>
+                {% if d.active %}
+                    <td>----</td>
+                {% else %}
+                    <td>{{ d.end }}</td>
+                {% endif %}                <td>{{ d.hour }}</td>
                 <td>{{ d.price }}</td>
                 <td>{{ d.total }}</td>
             </tr>
@@ -45,7 +48,11 @@
             <tr>
                 <td>{{ d.name }}</td>
                 <td>{{ d.start }}</td>
-                <td>{{ d.end }}</td>
+                {% if d.active %}
+                    <td>----</td>
+                {% else %}
+                    <td>{{ d.end }}</td>
+                {% endif %}
                 <td>{{ d.hour }}</td>
                 <td>{{ d.price }}</td>
                 <td>{{ d.total }}</td>

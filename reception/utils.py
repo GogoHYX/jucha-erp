@@ -37,7 +37,7 @@ def change_status(data):
     time = data['time']
     serves = Serves.objects.get(id=data['serves_id'])
     if data['maids_out']:
-        if len(data['maids_out']) >= len(serves.servesmaids_set.filter(active=True)):
+        if len(data['maids_out']) > len(serves.servesmaids_set.filter(active=True)):
             return False
 
         for sm in data['maids_out']:
@@ -99,6 +99,7 @@ def expense_detail(serves_id, update=True):
         d['end'] = show_time(m.end)
         d['hour'] = hour
         d['total'] = total
+        d['active'] = m.active
         maid_detail.append(d)
 
     place_detail = []
@@ -116,6 +117,7 @@ def expense_detail(serves_id, update=True):
         d['end'] = show_time(p.end)
         d['hour'] = hour
         d['total'] = total
+        d['active'] = p.active
         place_detail.append(d)
 
     item_detail = []

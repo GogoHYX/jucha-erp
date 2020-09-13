@@ -7,7 +7,7 @@ from django.contrib import auth
 from django.contrib.auth.models import User
 
 OVERTIME_THRESHOLD = datetime.time(22, 0)
-MAID_PRICE = 90
+MAID_PRICE = 80
 OVERTIME_PRICE = 120
 CASH_BACK_PERCENTAGE = 0.1
 
@@ -70,7 +70,7 @@ class Customer(models.Model):
     user = models.OneToOneField(User, blank=True, null=True, on_delete=models.SET_NULL)
 
     def __str__(self):
-        return self.phone + ' 积分：' + self.credit
+        return self.phone + ' 积分：' + str(self.credit)
 
     class Meta:
         verbose_name = "顾客"
@@ -338,7 +338,7 @@ class Bill(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT, blank=True, null=True)
 
     def __str__(self):
-        return '入账：' + self.total
+        return '入账：' + str(self.total)
 
     class Meta:
         verbose_name = "账单"
